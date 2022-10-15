@@ -4,16 +4,21 @@ import java.net.InetAddress;
 
 public class IncomingPacket extends MessagePacket {
 
-	public IncomingPacket(Message message, InetAddress addr, int port) {
-		super(message, addr, port);
+	private InetAddress srcAddr;
+	private int srcPort;
+	
+	public IncomingPacket(Message message, InetAddress srcAddr, int srcPort) {
+		super(message);
+		this.srcAddr = srcAddr;
+		this.srcPort = srcPort;
 	}
 	
 	public InetAddress getSrcAddress() {
-		return addr;
+		return srcAddr;
 	}
 	
 	public int getSrcPort() {
-		return port;
+		return srcPort;
 	}
 
 }

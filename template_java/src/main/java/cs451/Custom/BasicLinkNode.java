@@ -8,20 +8,22 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketAddress;
 import java.net.SocketException;
 
-public class BasicLink {
+public class BasicLinkNode {
 	
-	protected DatagramSocket datagramSocket;
-	protected int PACKET_SIZE = 128;
+	private DatagramSocket datagramSocket;
+	private int PACKET_SIZE = 128;
+	private CommunicationLogger logger;
 	
 	
-	public BasicLink(InetAddress addr,int port) throws SocketException {
+	public BasicLinkNode(InetAddress addr,int port) throws SocketException {
 		this.datagramSocket = new DatagramSocket(port, addr);
+		this.logger = new CommunicationLogger();
 	}
 
 	protected void Send(OutgoingPacket packet) {
+		packet.setTimeWhenSent(System.currentTimeMillis());
 		ByteArrayOutputStream messageByteStream = new ByteArrayOutputStream();
 		try {
 			ObjectOutputStream objStream = new ObjectOutputStream(messageByteStream);
@@ -36,10 +38,13 @@ public class BasicLink {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		logger.logSend(packet.getMessage().getSequenceNumber());
 	}
 	
-	protected void Deliver(IncomingPacket receivedPacket) {
-		//Do print stuff and all
+	protected void Deliver(IncomingPacket packet) {
+		logger.logDeliver(packet.getSrcPort(), packet.getMessage().getSequenceNumber());
+
 	}
 	
 	protected IncomingPacket Receive() {
@@ -63,7 +68,6 @@ public class BasicLink {
 		Message message = null;
 		InetAddress srcAddr = null;
 		int srcPort = 0;
-		MessagePacket networkPacket = null;
 		try {
 			message = (Message)(objectInputStream.readObject());
 			srcAddr = nextPacket.getAddress();

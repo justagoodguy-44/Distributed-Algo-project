@@ -7,9 +7,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class PerfectLinks extends BasicLink{
+public class PerfectLinkNode extends BasicLinkNode{
 	/*Messages that have been sent but for which confirmation hasn't been received go here
     It maps the message sequence number to the message*/
     private Map<Integer, OutgoingPacket> unAckedMessages;
@@ -19,11 +20,13 @@ public class PerfectLinks extends BasicLink{
 	private Queue<OutgoingPacket> waitingForSend;
 	
 	private float RESEND_MESSAGE_TIMER = 0.5f;
+	
+	private CommunicationLogger logger;
     
 	
-    public PerfectLinks(InetAddress addr, int port) throws SocketException {
+    public PerfectLinkNode(InetAddress addr, int port) throws SocketException {
 		super(addr, port);
-		unAckedMessages = new HashMap<Integer, OutgoingPacket>();
+		unAckedMessages = new ConcurrentHashMap<Integer, OutgoingPacket>();
 		receivedMessages = new HashSet<MessageID>();
 		waitingForSend = new ConcurrentLinkedQueue<OutgoingPacket>();
 	}
@@ -42,7 +45,11 @@ public class PerfectLinks extends BasicLink{
     
     public void RunUnackedSendLoop() {
     	while(true) {
-    		//HMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    		for(OutgoingPacket packet : unAckedMessages.values()) {
+    			if(System.currentTimeMillis() - packet.getTimeWhenSent() > RESEND_MESSAGE_TIMER) {
+    				enqueueForSend(packet);
+    			}
+    		}
     	}
     }
     
@@ -63,21 +70,21 @@ public class PerfectLinks extends BasicLink{
     
    
     @Override 
-	protected void Deliver(IncomingPacket receivedPacket) {
+	protected void Deliver(IncomingPacket packet) {
     	
-	   Message message = receivedPacket.getMessage();
+	   Message message = packet.getMessage();
 	   int seqNr = message.getSequenceNumber();
-	   InetAddress addr = receivedPacket.getSrcAddress();
-	   int port = receivedPacket.getSrcPort();
+	   InetAddress addr = packet.getSrcAddress();
+	   int port = packet.getSrcPort();
 	   
 	   if(message.isAck()) {
 		   unAckedMessages.remove(seqNr);
-		   SendAck(addr, port, seqNr);
 	   } else {
 		   MessageID newMessageID = new MessageID(seqNr, addr, port);
+		   SendAck(addr, port, seqNr);
 		   if(!receivedMessages.contains(newMessageID)) {
 			   receivedMessages.add(newMessageID);
-			   super.Deliver(receivedPacket);
+			   super.Deliver(packet);
 		   }
 	   }
 	}
