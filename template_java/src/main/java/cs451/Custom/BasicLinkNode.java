@@ -13,13 +13,18 @@ import java.net.SocketException;
 public class BasicLinkNode {
 	
 	private DatagramSocket datagramSocket;
+	
 	private int PACKET_SIZE = 128;
-	private CommunicationLogger logger;
+	
+	protected int processId;
+	
+	protected  CommunicationLogger logger;
 	
 	
-	public BasicLinkNode(InetAddress addr,int port) throws SocketException {
+	public BasicLinkNode(InetAddress addr,int port, int processId) throws SocketException {
 		this.datagramSocket = new DatagramSocket(port, addr);
-		this.logger = new CommunicationLogger();
+		this.processId = processId;
+		this.logger = new CommunicationLogger(processId);
 	}
 
 	protected void Send(OutgoingPacket packet) {

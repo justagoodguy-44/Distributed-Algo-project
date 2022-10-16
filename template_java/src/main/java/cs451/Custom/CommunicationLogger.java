@@ -8,26 +8,29 @@ import java.util.List;
 
 public class CommunicationLogger {
 	
-	private static final String PATH_TO_LOGS = "./../../../../../logs";
-	private static final int PORT_OFFSET = 11000;
-	private int processNumber;
+	public static final String PATH_TO_OUTPUTS = "./outputs";
+	
+	private int processId;
 	private File logFile;
 	private String filePath;
 	private FileWriter fileWriter;
 	private List<String> toBeWrittenToFile;
 			
-	public CommunicationLogger() {
-		InitLogFile();
+	public CommunicationLogger(int processId) {
 		toBeWrittenToFile = new LinkedList<String>();
+		this.processId = processId;
+		
+		InitLogFile();
+
 	}
 	
 	public void logSend(int seqNr) {
-		String log = String.format("b %i \n", seqNr);
+		String log = String.format("b %d \n", seqNr);
 		toBeWrittenToFile.add(log);
 	}
 	
 	public void logDeliver(int srcPort, int seqNr) {
-		String log = String.format("d %i %i \n", srcPort - PORT_OFFSET, seqNr);
+		String log = String.format("d %d %d \n", ProcessIDHelpers.getIdFromPort(srcPort) , seqNr);
 	}
 	
 	//Writes to file and closes the file writer
@@ -48,8 +51,8 @@ public class CommunicationLogger {
 	
 	private void InitLogFile() {
 		//Create file
-		String logFileName = String.format("logs_%i", processNumber);
-		filePath = String.format("%s/%s", PATH_TO_LOGS, logFileName);
+		String outputFileName = String.format("logs_%d", processId);
+		filePath = String.format("%s/%s", PATH_TO_OUTPUTS, outputFileName);
 		logFile = new File(filePath);
 		if(logFile.exists()) {
 			logFile.delete();
