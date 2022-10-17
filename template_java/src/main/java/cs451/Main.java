@@ -79,6 +79,9 @@ public class Main {
         System.out.println("Broadcasting and delivering messages...\n");
         
         ConfigReader configReader = new ConfigReader(parser.config());
+        System.out.println("Config to send:");
+        System.out.println("===============");
+        System.out.println(configReader.getNbMessages() + " messages to " + configReader.getDestPid() + "\n");
         
         Thread deliverThread = new Thread() {
         	@Override
@@ -86,7 +89,7 @@ public class Main {
                 thisNode.RunDeliverLoop();
             }
         };
-        deliverThread.run();
+        deliverThread.start();
         
         //Enqueue messages to be sent
         int messagesToSend = configReader.getNbMessages();
@@ -94,16 +97,16 @@ public class Main {
         InetAddress dstAddr = InetAddress.getByName(parser.hosts().get(dstPid-1).getIp());
         int dstPort = ProcessIDHelpers.getPortFromId(dstPid);
         for(int i = 0; i < messagesToSend; ++i) {
-        	thisNode.enqueueForSend(dstAddr, dstPort, Integer.toString(i+1));
+        	thisNode.sendNewMessage(dstAddr, dstPort, Integer.toString(i+1));
         }
-        
+
         Thread sendThread = new Thread() {
         	@Override
             public void run() {
                 thisNode.RunSendLoop();
             }
         };
-        sendThread.run();
+        sendThread.start();
         
         Thread sendUnackedThread = new Thread() {
         	@Override
@@ -111,7 +114,7 @@ public class Main {
                 thisNode.RunUnackedSendLoop();
             }
         };
-        sendUnackedThread.run();
+        sendUnackedThread.start();
 
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.

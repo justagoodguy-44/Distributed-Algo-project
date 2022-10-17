@@ -17,17 +17,17 @@ public class BasicLinkNode {
 	private int PACKET_SIZE = 128;
 	
 	protected int processId;
-	
-	protected  CommunicationLogger logger;
-	
+		
 	
 	public BasicLinkNode(InetAddress addr,int port, int processId) throws SocketException {
 		this.datagramSocket = new DatagramSocket(port, addr);
 		this.processId = processId;
-		this.logger = new CommunicationLogger(processId);
 	}
 
 	protected void Send(OutgoingPacket packet) {
+		
+		System.out.println("Sending a message");
+		
 		packet.setTimeWhenSent(System.currentTimeMillis());
 		ByteArrayOutputStream messageByteStream = new ByteArrayOutputStream();
 		try {
@@ -36,20 +36,22 @@ public class BasicLinkNode {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		DatagramPacket datagramPacket = new DatagramPacket(messageByteStream.toByteArray(), 
-				PACKET_SIZE, packet.getDstAddress(), packet.getDstPort());
+		byte[] messageBytes = messageByteStream.toByteArray();
+		DatagramPacket datagramPacket = new DatagramPacket(messageBytes, 
+				messageBytes.length, packet.getDstAddress(), packet.getDstPort());
 		try {
 			datagramSocket.send(datagramPacket);
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
-		
-		logger.logSend(packet.getMessage().getSequenceNumber());
+		}		
 	}
 	
-	protected void Deliver(IncomingPacket packet) {
-		logger.logDeliver(packet.getSrcPort(), packet.getMessage().getSequenceNumber());
-
+	protected IncomingPacket Deliver(IncomingPacket packet) {
+		return packet;
+	}
+	
+	protected void handleReceivedPacket(IncomingPacket packet) {
+		Deliver(packet);
 	}
 	
 	protected IncomingPacket Receive() {

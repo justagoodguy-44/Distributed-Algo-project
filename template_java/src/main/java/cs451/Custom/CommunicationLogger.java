@@ -21,7 +21,6 @@ public class CommunicationLogger {
 		this.processId = processId;
 		
 		InitLogFile();
-
 	}
 	
 	public void logSend(int seqNr) {
@@ -31,6 +30,7 @@ public class CommunicationLogger {
 	
 	public void logDeliver(int srcPort, int seqNr) {
 		String log = String.format("d %d %d \n", ProcessIDHelpers.getIdFromPort(srcPort) , seqNr);
+		toBeWrittenToFile.add(log);
 	}
 	
 	//Writes to file and closes the file writer
