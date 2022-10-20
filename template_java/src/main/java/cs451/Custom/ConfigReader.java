@@ -7,7 +7,7 @@ import java.util.Scanner;
 public class ConfigReader {
 	
 	private File configFile;
-	private int nbMessages;
+	private long nbMessages;
 	private int dstPid;
 	
 	public ConfigReader(String path) {
@@ -15,7 +15,7 @@ public class ConfigReader {
 		extractValues();
 	}
 	
-	public int getNbMessages() {
+	public long getNbMessages() {
 		return nbMessages;
 	}
 	
@@ -27,7 +27,7 @@ public class ConfigReader {
 		Scanner scanner;
 		try {
 			scanner = new Scanner(configFile);
-			nbMessages = scanner.nextInt();
+			nbMessages = scanner.nextLong();
 			dstPid = scanner.nextInt();
 			scanner.close();
 		} catch (FileNotFoundException e) {

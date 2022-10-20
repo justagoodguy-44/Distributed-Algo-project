@@ -28,4 +28,10 @@ public class MessageID {
 		String packetString = Integer.toString(seqNr) + addr.toString() + Integer.toString(port); 
 		return packetString.hashCode();
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		MessageID idOther = (MessageID)o;
+		return idOther.seqNr == this.seqNr && idOther.port == this.port && idOther.addr.equals(this.addr);
+	}
 }

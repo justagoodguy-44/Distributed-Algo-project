@@ -8,19 +8,18 @@ import java.util.List;
 
 public class CommunicationLogger {
 	
-	public static final String PATH_TO_OUTPUTS = "./outputs";
-	
-	private int processId;
+	private static String pathToOutput;
 	private File logFile;
-	private String filePath;
-	private FileWriter fileWriter;
-	private List<String> toBeWrittenToFile;
+	private static FileWriter fileWriter;
+	private static List<String> toBeWrittenToFile;
 			
-	public CommunicationLogger(int processId) {
-		toBeWrittenToFile = new LinkedList<String>();
-		this.processId = processId;
-		
+	public CommunicationLogger() {
+		toBeWrittenToFile = new LinkedList<String>();		
 		InitLogFile();
+	}
+	
+	public static void writeLogsToFile() {
+		Close();
 	}
 	
 	public void logSend(int seqNr) {
@@ -34,7 +33,7 @@ public class CommunicationLogger {
 	}
 	
 	//Writes to file and closes the file writer
-	public void Close() {
+	public static void Close() {
 		for(String text : toBeWrittenToFile) {
 			try {
 				fileWriter.write(text);
@@ -49,11 +48,13 @@ public class CommunicationLogger {
 		}
 	}
 	
+	public static void setPathToOutput(String pathToOutput) {
+		CommunicationLogger.pathToOutput = pathToOutput; 
+	}
+	
 	private void InitLogFile() {
 		//Create file
-		String outputFileName = String.format("logs_%d", processId);
-		filePath = String.format("%s/%s", PATH_TO_OUTPUTS, outputFileName);
-		logFile = new File(filePath);
+		logFile = new File(pathToOutput);
 		if(logFile.exists()) {
 			logFile.delete();
 		}
@@ -65,7 +66,7 @@ public class CommunicationLogger {
 		
 		//Initialize the FileWriter
 		try {
-			fileWriter = new FileWriter(filePath);
+			fileWriter = new FileWriter(pathToOutput);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

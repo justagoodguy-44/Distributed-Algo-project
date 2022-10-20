@@ -1,13 +1,8 @@
 package cs451;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-
 import cs451.Custom.CommunicationLogger;
 import cs451.Custom.ConfigReader;
 import cs451.Custom.PerfectLinkNode;
@@ -22,6 +17,7 @@ public class Main {
 
         //write/flush output file if necessary
         System.out.println("Writing output.");
+        PerfectLinkNode.simulateProcessCrash();
     }
 
     private static void initSignalHandlers() {
@@ -74,6 +70,7 @@ public class Main {
         System.out.println(parser.config() + "\n");
 
         System.out.println("Doing some initialization\n");
+        CommunicationLogger.setPathToOutput(parser.output());
         PerfectLinkNode thisNode = new PerfectLinkNode(myIp, myPort, parser.myId());
 
         System.out.println("Broadcasting and delivering messages...\n");
@@ -82,28 +79,40 @@ public class Main {
         System.out.println("Config to send:");
         System.out.println("===============");
         System.out.println(configReader.getNbMessages() + " messages to " + configReader.getDestPid() + "\n");
+
+        //START THE THREADS
         
         Thread deliverThread = new Thread() {
         	@Override
             public void run() {
-                thisNode.RunDeliverLoop();
+                thisNode.runDeliverLoop();
             }
         };
         deliverThread.start();
         
         //Enqueue messages to be sent
-        int messagesToSend = configReader.getNbMessages();
+        long messagesToSend = configReader.getNbMessages();
         int dstPid = configReader.getDestPid();
         InetAddress dstAddr = InetAddress.getByName(parser.hosts().get(dstPid-1).getIp());
         int dstPort = ProcessIDHelpers.getPortFromId(dstPid);
-        for(int i = 0; i < messagesToSend; ++i) {
-        	thisNode.sendNewMessage(dstAddr, dstPort, Integer.toString(i+1));
-        }
+        
+        Thread addNewMessagesThread = new Thread() {
+        	@Override
+            public void run() {
+        	 for(int i = 0; i < messagesToSend; ++i) {
+        		 if(dstPid != parser.myId()) {
+        			 thisNode.send(dstAddr, dstPort, i+1, Integer.toString(i+1));
+        		 }
+             	}
+        	}
+        };
+        addNewMessagesThread.start();
+       
 
         Thread sendThread = new Thread() {
         	@Override
             public void run() {
-                thisNode.RunSendLoop();
+                thisNode.runSendLoop();
             }
         };
         sendThread.start();
@@ -111,7 +120,7 @@ public class Main {
         Thread sendUnackedThread = new Thread() {
         	@Override
             public void run() {
-                thisNode.RunUnackedSendLoop();
+                thisNode.runUnackedSendLoop();
             }
         };
         sendUnackedThread.start();

@@ -10,7 +10,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
-public class BasicLinkNode {
+public class BasicLinkNode implements LinkNode{
 	
 	private DatagramSocket datagramSocket;
 	
@@ -24,9 +24,7 @@ public class BasicLinkNode {
 		this.processId = processId;
 	}
 
-	protected void Send(OutgoingPacket packet) {
-		
-		System.out.println("Sending a message");
+	public void send(OutgoingPacket packet) {
 		
 		packet.setTimeWhenSent(System.currentTimeMillis());
 		ByteArrayOutputStream messageByteStream = new ByteArrayOutputStream();
@@ -46,12 +44,9 @@ public class BasicLinkNode {
 		}		
 	}
 	
-	protected IncomingPacket Deliver(IncomingPacket packet) {
+	public IncomingPacket deliver() {
+		IncomingPacket packet = Receive();
 		return packet;
-	}
-	
-	protected void handleReceivedPacket(IncomingPacket packet) {
-		Deliver(packet);
 	}
 	
 	protected IncomingPacket Receive() {
@@ -81,9 +76,6 @@ public class BasicLinkNode {
 			srcPort = nextPacket.getPort();
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
-		}
-		if(message == null) {
-			return null;
 		}
 		return new IncomingPacket(message, srcAddr, srcPort);
 	}
