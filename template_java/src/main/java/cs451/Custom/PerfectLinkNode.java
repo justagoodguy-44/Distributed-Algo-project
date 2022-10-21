@@ -8,6 +8,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PerfectLinkNode implements LinkNode{
 	
@@ -22,8 +23,12 @@ public class PerfectLinkNode implements LinkNode{
 	private Queue<OutgoingPacket> waitingForSend;
 	
 	private static final float RESEND_TIMER_MILLIS = 150;
+	
+	private static final int WAITING_FOR_SEND_MAX_SIZE = 32;
+	
+	private static final int MAX_UNACKED_MESSAGES = 200_000;
 		
-	private static Boolean allowCommunication;
+	private static AtomicBoolean allowCommunication;
 		
 	protected  CommunicationLogger logger;
 
@@ -34,16 +39,19 @@ public class PerfectLinkNode implements LinkNode{
 		unAckedMessages = new ConcurrentHashMap<Integer, OutgoingPacket>();
 		receivedMessages = new HashSet<MessageID>();
 		waitingForSend = new ConcurrentLinkedQueue<OutgoingPacket>();
-		allowCommunication = true;
+		allowCommunication = new AtomicBoolean(true);
 		this.logger = new CommunicationLogger();
 	}
     
     
     public void send(OutgoingPacket packet) {
+    	while(waitingForSend.size() >= WAITING_FOR_SEND_MAX_SIZE) {
+    		//Do nothing and wait until the buffer values are consumed
+    	}
     	waitingForSend.add(packet);
 	}
     
-    public void send(InetAddress dstAddr, int dstPort, int seqNb, String data) {
+    public void send(InetAddress dstAddr, int dstPort, int seqNb, byte[] data) {
     	Message message = new Message(false, seqNb, data);
     	OutgoingPacket packet = new OutgoingPacket(message, dstAddr, dstPort);
     	send(packet);
@@ -62,23 +70,23 @@ public class PerfectLinkNode implements LinkNode{
 
     
     public static void simulateProcessCrash() {
+    	allowCommunication.compareAndExchangeAcquire(true, false);
     	CommunicationLogger.writeLogsToFile();
-    	allowCommunication = false;
     }
-    
     
     public void runSendLoop() {
     	while(true) {
-    		if(!allowCommunication) {
+    		if(!allowCommunication.get()) {
 				return;
 			}
     		if(!waitingForSend.isEmpty()) {
-    			System.out.println(waitingForSend.size());
-	    		OutgoingPacket packet = waitingForSend.remove();
-	    		basicLinkNode.send(packet);
-	    		unAckedMessages.put(packet.getMessage().getSequenceNumber(), packet);
-				logger.logSend(packet.getMessage().getSequenceNumber());
-//				System.out.println("Send message " + packet.getMessage().getSequenceNumber());
+    			if(unAckedMessages.size() < MAX_UNACKED_MESSAGES) {
+	//    			System.out.println(waitingForSend.size());
+		    		OutgoingPacket packet = waitingForSend.remove();
+		    		basicLinkNode.send(packet);
+		    		unAckedMessages.put(packet.getMessage().getSequenceNumber(), packet);
+					logger.logSend(packet.getMessage().getSequenceNumber());
+    			}
     		}
     	}
     }
@@ -86,7 +94,7 @@ public class PerfectLinkNode implements LinkNode{
     public void runUnackedSendLoop() {
     	while(true) {
     		for(OutgoingPacket packet : unAckedMessages.values()) {
-    			if(!allowCommunication) {
+    			if(!allowCommunication.get()) {
     				return;
     			}
     			long currentTimeMillis = System.currentTimeMillis();
@@ -101,7 +109,7 @@ public class PerfectLinkNode implements LinkNode{
     
     public void runDeliverLoop() {
     	while(true) {
-    		if(!allowCommunication) {
+    		if(!allowCommunication.get()) {
 				return;
 			}
     		IncomingPacket packet = deliver();
@@ -118,7 +126,7 @@ public class PerfectLinkNode implements LinkNode{
     	int port = packet.getSrcPort();
 	   
     	if(message.isAck()) {
-//    		System.out.println("Ack recevied from " + port);
+//    		System.out.println("Ack message " + message.getSequenceNumber()  + " from " + port);
     		unAckedMessages.remove(packet.getMessage().getSequenceNumber());
     	} else {
     		MessageID newMessageID = new MessageID(seqNr, addr, port);
@@ -133,9 +141,10 @@ public class PerfectLinkNode implements LinkNode{
    
    private void sendAck(InetAddress addr, int port, int seqNr) {
 //	   System.out.println("Ack message " + seqNr);
-	   Message ackMessage = new Message(true, seqNr, null);
+	   Message ackMessage = new Message(true, seqNr, new byte[0]);
 	   OutgoingPacket ackPacket = new OutgoingPacket(ackMessage, addr, port);
 	   basicLinkNode.send(ackPacket);
    }
+   
 
 }

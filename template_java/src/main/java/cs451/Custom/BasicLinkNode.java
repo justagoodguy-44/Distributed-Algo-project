@@ -25,16 +25,10 @@ public class BasicLinkNode implements LinkNode{
 	}
 
 	public void send(OutgoingPacket packet) {
-		
+//		System.out.println("Send message " + packet.getMessage().getSequenceNumber());
+
 		packet.setTimeWhenSent(System.currentTimeMillis());
-		ByteArrayOutputStream messageByteStream = new ByteArrayOutputStream();
-		try {
-			ObjectOutputStream objStream = new ObjectOutputStream(messageByteStream);
-			objStream.writeObject(packet.getMessage());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		byte[] messageBytes = messageByteStream.toByteArray();
+		byte[] messageBytes = packet.getMessage().serialize();
 		DatagramPacket datagramPacket = new DatagramPacket(messageBytes, 
 				messageBytes.length, packet.getDstAddress(), packet.getDstPort());
 		try {
@@ -57,26 +51,10 @@ public class BasicLinkNode implements LinkNode{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		ByteArrayInputStream messageByteStream = new ByteArrayInputStream(nextPacket.getData());
-		ObjectInputStream objectInputStream = null;
-		try {
-			objectInputStream = new ObjectInputStream(messageByteStream);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		if(objectInputStream == null) {
-			return null;
-		}
-		Message message = null;
-		InetAddress srcAddr = null;
-		int srcPort = 0;
-		try {
-			message = (Message)(objectInputStream.readObject());
-			srcAddr = nextPacket.getAddress();
-			srcPort = nextPacket.getPort();
-		} catch (ClassNotFoundException | IOException e) {
-			e.printStackTrace();
-		}
+		Message message = new Message(nextPacket.getData());
+		InetAddress srcAddr = nextPacket.getAddress();
+		int srcPort = nextPacket.getPort();
+		
 		return new IncomingPacket(message, srcAddr, srcPort);
 	}
 }

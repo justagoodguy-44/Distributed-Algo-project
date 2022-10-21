@@ -1,5 +1,6 @@
 package cs451;
 
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -101,7 +102,7 @@ public class Main {
             public void run() {
         	 for(int i = 0; i < messagesToSend; ++i) {
         		 if(dstPid != parser.myId()) {
-        			 thisNode.send(dstAddr, dstPort, i+1, Integer.toString(i+1));
+        			 thisNode.send(dstAddr, dstPort, i+1, BigInteger.valueOf(i+1).toByteArray());
         		 }
              	}
         	}
