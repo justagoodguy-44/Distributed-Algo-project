@@ -5,16 +5,18 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CommunicationLogger {
 	
 	private static String pathToOutput;
 	private File logFile;
 	private static FileWriter fileWriter;
-	private static List<String> toBeWrittenToFile;
+	private static Queue<String> toBeWrittenToFile;
 			
 	public CommunicationLogger() {
-		toBeWrittenToFile = new LinkedList<String>();		
+		toBeWrittenToFile = new ConcurrentLinkedQueue<String>();		
 		InitLogFile();
 	}
 	
