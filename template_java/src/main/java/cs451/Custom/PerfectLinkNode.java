@@ -28,7 +28,7 @@ public class PerfectLinkNode implements LinkNode{
 	
 	private static final int WAITING_FOR_SEND_MAX_SIZE = 32;
 	
-	private static final int MAX_UNACKED_MESSAGES = 15_000;
+	private static final int MAX_UNACKED_PACKAGES = 100;
 	
 	private static final int MAX_NB_OF_MSG_PER_PACKET = 8;
 		
@@ -84,7 +84,7 @@ public class PerfectLinkNode implements LinkNode{
 				return;
 			}
     		if(!waitingForSend.isEmpty()) {
-    			if(unAckedPackets.size() < MAX_UNACKED_MESSAGES) {
+    			if(unAckedPackets.size() < MAX_UNACKED_PACKAGES) {
 	//    			System.out.println(waitingForSend.size());
 		    		OutgoingPacket packet = makeNextPacketToSend(MAX_NB_OF_MSG_PER_PACKET);
 		    		basicLinkNode.send(packet);
@@ -162,7 +162,7 @@ public class PerfectLinkNode implements LinkNode{
 	   int dstPort = firstPacket.getDstPort();
 	   
 	   messages.add(firstPacket.getMessages().get(0));	//there is only one message anyways
-	   for(int i = 0; !waitingForSend.isEmpty() && i < maxNbOfMessages; ++i) {
+	   for(int i = 0; !waitingForSend.isEmpty() && i < maxNbOfMessages-1; ++i) {
 		   OutgoingPacket nextPacket = waitingForSend.peek();
 		   if(nextPacket.getDstAddress().equals(dstAddr) && nextPacket.getDstPort() == dstPort) {
 			   waitingForSend.remove();
