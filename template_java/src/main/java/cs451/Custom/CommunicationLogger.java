@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import cs451.Custom.Helpers.ProcessIDHelpers;
+
 public class CommunicationLogger {
 	
 	private static String pathToOutput;

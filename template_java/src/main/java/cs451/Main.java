@@ -5,9 +5,10 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import cs451.Custom.CommunicationLogger;
-import cs451.Custom.ConfigReader;
-import cs451.Custom.PerfectLinkNode;
-import cs451.Custom.ProcessIDHelpers;
+import cs451.Custom.Helpers.ConfigReader;
+import cs451.Custom.Helpers.ProcessIDHelpers;
+import cs451.Custom.Links.PerfectLinkNode;
+import cs451.Custom.Network.NetworkParams;
 
 public class Main {
 	
@@ -33,7 +34,7 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, SocketException, UnknownHostException {
         Parser parser = new Parser(args);
         parser.parse();
-
+        NetworkParams.setInstance(parser.hosts().size());
         initSignalHandlers();
 
         // example
@@ -81,15 +82,6 @@ public class Main {
         System.out.println("===============");
         System.out.println(configReader.getNbMessages() + " messages to " + configReader.getDestPid() + "\n");
 
-        //START THE THREADS
-        
-        Thread deliverThread = new Thread() {
-        	@Override
-            public void run() {
-                thisNode.runDeliverLoop();
-            }
-        };
-        deliverThread.start();
         
         //Enqueue messages to be sent
         long messagesToSend = configReader.getNbMessages();
@@ -102,29 +94,13 @@ public class Main {
             public void run() {
         	 for(int i = 0; i < messagesToSend; ++i) {
         		 if(dstPid != parser.myId()) {
-        			 thisNode.send(dstAddr, dstPort, i+1, BigInteger.valueOf(i+1).toByteArray());
+        			 thisNode.send(dstAddr, dstPort, BigInteger.valueOf(i+1).toByteArray());
         		 }
              	}
         	}
         };
         addNewMessagesThread.start();
-       
-
-        Thread sendThread = new Thread() {
-        	@Override
-            public void run() {
-                thisNode.runSendLoop();
-            }
-        };
-        sendThread.start();
-        
-        Thread sendUnackedThread = new Thread() {
-        	@Override
-            public void run() {
-                thisNode.runUnackedSendLoop();
-            }
-        };
-        sendUnackedThread.start();
+    
 
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.

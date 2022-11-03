@@ -1,0 +1,47 @@
+My PID: 169022
+
+From a new terminal type `kill -SIGINT 169022` or `kill -SIGTERM 169022` to stop processing packets
+
+My ID: 3
+
+List of resolved hosts is:
+==========================
+1
+Human-readable IP: 127.0.0.1
+Human-readable Port: 11001
+
+2
+Human-readable IP: 127.0.0.1
+Human-readable Port: 11002
+
+3
+Human-readable IP: 127.0.0.1
+Human-readable Port: 11003
+
+4
+Human-readable IP: 127.0.0.1
+Human-readable Port: 11004
+
+5
+Human-readable IP: 127.0.0.1
+Human-readable Port: 11005
+
+
+Path to output:
+===============
+/home/paulo/Documents/2022-2023/Distributed Algorithms/CS451-2022-project-master/template_java/outputs/proc03.output
+
+Path to config:
+===============
+template_java/outputs/config
+
+Doing some initialization
+
+Broadcasting and delivering messages...
+
+Config to send:
+===============
+12 messages to 1
+
+Immediately stopping network packet processing.
+Writing output.
