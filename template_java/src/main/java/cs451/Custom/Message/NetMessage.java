@@ -5,8 +5,9 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class Message {
+public class NetMessage {
     
+	private boolean isAck;
     private int seqNb;
     //contents of the message
     private byte[] data;
@@ -23,7 +24,7 @@ public class Message {
      * @param port: the source port of the message if it is arriving from the network, the destination port if 
      * it is being sent to the network
      */
-    public Message(int seqNb, byte[] data, InetAddress addr, int port){
+    public NetMessage(boolean isAck, int seqNb, byte[] data, InetAddress addr, int port){
         this.seqNb = seqNb;
         this.data = data;
         this.addr = addr;
@@ -53,6 +54,10 @@ public class Message {
      */
 	public int getPort() {
 		return port;
+	}
+	
+	public boolean isAck() {
+		return isAck;
 	}
         
 }

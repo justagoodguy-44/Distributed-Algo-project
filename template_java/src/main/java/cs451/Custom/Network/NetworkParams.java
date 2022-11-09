@@ -12,7 +12,7 @@ public class NetworkParams {
 				
 	public static final int MAX_UNACKED_PACKETS = 15_000;
 	
-	private static final int MAX_PACKET_SIZE = 128;
+	public static final int MAX_PACKET_SIZE = 128;
 
 	
 	private static int nbOfHosts;
@@ -36,5 +36,9 @@ public class NetworkParams {
 	
 	public int getMaxUnackedPacketsPerProcess() {
 		return maxUnackedPacketsPerProcess;
+	}
+	
+	public int getNbOfHosts() {
+		return nbOfHosts;
 	}
 }

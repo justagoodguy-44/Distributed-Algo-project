@@ -6,14 +6,15 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
-import cs451.Custom.Network.IncomingPacket;
-import cs451.Custom.Network.OutgoingPacket;
+import cs451.Custom.Network.NetworkParams;
+import cs451.Custom.Packet.IncomingPacket;
+import cs451.Custom.Packet.OutgoingPacket;
+import cs451.Custom.Packet.PacketSerializer;
 
 public class BasicLinkNode {
 	
 	private DatagramSocket datagramSocket;
 	
-	private int MAX_PACKET_SIZE = 128; //1 + Integer.BYTES + 8*Integer.BYTES + 8*Integer.BYTES;
 	
 	protected int processId;
 	
@@ -28,9 +29,9 @@ public class BasicLinkNode {
 	public void send(OutgoingPacket packet) {
 //		System.out.println("Send message " + packet.getMessage().getSequenceNumber());
 		packet.setTimeWhenSent(System.currentTimeMillis());
-		byte[] serializedMsgArray = packet.serialize();
-		DatagramPacket datagramPacket = new DatagramPacket(serializedMsgArray, 
-				serializedMsgArray.length, packet.getDstAddress(), packet.getDstPort());
+		byte[] serializePacket = PacketSerializer.serializePacket(packet);
+		DatagramPacket datagramPacket = new DatagramPacket(serializePacket, 
+				serializePacket.length, packet.getAddr(), packet.getPort());
 		try {
 			datagramSocket.send(datagramPacket);
 		} catch (IOException e) {
@@ -39,21 +40,19 @@ public class BasicLinkNode {
 	}
 	
 	
-	public IncomingPacket deliver() {
-		IncomingPacket packet = Receive();
-		return packet;
-	}
-	
-	
-	protected IncomingPacket Receive() {
-		byte[] nextMessageBuffer = new byte[MAX_PACKET_SIZE];
-		DatagramPacket nextPacket = new DatagramPacket(nextMessageBuffer, MAX_PACKET_SIZE);
+	protected IncomingPacket receive() {
+		byte[] nextMessageBuffer = new byte[NetworkParams.MAX_PACKET_SIZE];
+		DatagramPacket nextPacket = new DatagramPacket(nextMessageBuffer, NetworkParams.MAX_PACKET_SIZE);
 		try {
 			datagramSocket.receive(nextPacket);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return new IncomingPacket(nextPacket.getData(), nextPacket.getAddress(), nextPacket.getPort());
+		IncomingPacket packet = PacketSerializer.deserializeFromNetwork(
+				nextPacket.getData(), 
+				nextPacket.getAddress(), 
+				nextPacket.getPort());
+		return packet;
 	}
 	
 }

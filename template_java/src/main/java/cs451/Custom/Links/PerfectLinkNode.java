@@ -14,11 +14,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import cs451.Custom.CommunicationLogger;
-import cs451.Custom.Message.Message;
-import cs451.Custom.Message.MessageID;
-import cs451.Custom.Network.IncomingPacket;
+import cs451.Custom.Message.NetMessage;
+import cs451.Custom.Message.NetMessageID;
 import cs451.Custom.Network.NetworkParams;
-import cs451.Custom.Network.OutgoingPacket;
+import cs451.Custom.Packet.IncomingPacket;
+import cs451.Custom.Packet.OutgoingPacket;
 
 public class PerfectLinkNode {
 	
@@ -28,9 +28,9 @@ public class PerfectLinkNode {
     It maps the message sequence number to the message*/
     private Map<Integer, OutgoingPacket> unAckedPackets;
     
-	private Set<MessageID> receivedMessages;
+	private Set<NetMessageID> receivedMessages;
 	
-	private LinkedBlockingQueue<Message> waitingForSend;
+	private LinkedBlockingQueue<NetMessage> waitingForSend;
 		
 	private static AtomicBoolean allowCommunication;
 		
@@ -45,8 +45,8 @@ public class PerfectLinkNode {
     public PerfectLinkNode(InetAddress addr, int port, int processId) throws SocketException {
 		basicLinkNode = new BasicLinkNode(addr, port, processId);
 		unAckedPackets = new ConcurrentHashMap<Integer, OutgoingPacket>();
-		receivedMessages = new HashSet<MessageID>();
-		waitingForSend = new LinkedBlockingQueue<Message>(NetworkParams.WAITING_FOR_SEND_MAX_SIZE);
+		receivedMessages = new HashSet<NetMessageID>();
+		waitingForSend = new LinkedBlockingQueue<NetMessage>(NetworkParams.WAITING_FOR_SEND_MAX_SIZE);
 		allowCommunication = new AtomicBoolean(true);
 		logger = new CommunicationLogger();
 		maxUnackedPacketsPerProcess = NetworkParams.getInstance().getMaxUnackedPacketsPerProcess();
@@ -56,7 +56,7 @@ public class PerfectLinkNode {
 
     
     public void send(InetAddress dstAddr, int dstPort, byte[] data) {
-    	Message message = new Message(nextMsgSeqNb, data, dstAddr, dstPort);
+    	NetMessage message = new NetMessage(false, nextMsgSeqNb, data, dstAddr, dstPort);
     	try {
 			waitingForSend.put(message);	//will block until space is available
 		} catch (InterruptedException e) {
@@ -65,15 +65,18 @@ public class PerfectLinkNode {
     	nextMsgSeqNb++;
     }
     
-	public IncomingPacket deliver() {
+	public List<byte[]> deliver() {
 		IncomingPacket packet = null;
 		Boolean receivedMessageToDeliver = false;
 		while(!receivedMessageToDeliver) {
-			packet = basicLinkNode.deliver();
+			packet = basicLinkNode.receive();
 			receivedMessageToDeliver = handleReceivedPacket(packet);
 		}
-//		System.out.println("Deliver message " + packet.getMessage().getSequenceNumber());
-		return packet;
+		List<byte[]> messagesData = new LinkedList<byte[]>();
+		for(NetMessage msg : packet.getMessages()) {
+			messagesData.add(msg.getData());
+		}
+		return messagesData;
 	}
 
     
@@ -116,13 +119,13 @@ public class PerfectLinkNode {
     		if(!allowCommunication.get()) {
 				return;
 			}
-    		if(!waitingForSend.isEmpty() || unAckedPackets.size() < maxUnackedPacketsPerProcess) {
+    		if(!waitingForSend.isEmpty() && unAckedPackets.size() < maxUnackedPacketsPerProcess) {
 //    			System.out.println(waitingForSend.size());
 	    		OutgoingPacket packet = makeNextPacketToSend(NetworkParams.MAX_NB_OF_MSG_PER_PACKET);
 	    		if(packet != null) {
 		    		basicLinkNode.send(packet);
 		    		unAckedPackets.put(packet.getPacketSeqNr(), packet);
-					for(Message msg : packet.getMessages()) {
+					for(NetMessage msg : packet.getMessages()) {
 						logger.logSend(msg.getSequenceNumber());
 					}
 	    		}
@@ -151,9 +154,9 @@ public class PerfectLinkNode {
     		if(!allowCommunication.get()) {
 				return;
 			}
-    		IncomingPacket packet = deliver();
-    		for(Message msg : packet.getMessages()) {
-        		logger.logDeliver(packet.getSrcPort(), msg.getSequenceNumber());
+    		IncomingPacket packet = basicLinkNode.receive();
+    		for(NetMessage msg : packet.getMessages()) {
+        		logger.logDeliver(packet.getPort(), msg.getSequenceNumber());
 			}
     	}
     }    
@@ -161,16 +164,16 @@ public class PerfectLinkNode {
     
     private Boolean handleReceivedPacket(IncomingPacket packet) {
     	Boolean shouldDeliver = false;
-    	List<Message> messages = packet.getMessages();
+    	List<NetMessage> messages = packet.getMessages();
     	int seqNr = packet.getPacketSeqNr();
-    	InetAddress addr = packet.getSrcAddress();
-    	int port = packet.getSrcPort();
+    	InetAddress addr = packet.getAddr();
+    	int port = packet.getPort();
 	   
     	if(messages.size()  == 1 && messages.get(0).isAck()) {
 //    		System.out.println("Ack message " + message.getSequenceNumber()  + " from " + port);
     		unAckedPackets.remove(packet.getPacketSeqNr());
     	} else {
-    		MessageID newMessageID = new MessageID(seqNr, addr, port);
+    		NetMessageID newMessageID = new NetMessageID(seqNr, addr, port);
     		sendAck(addr, port, seqNr);
     		if(!receivedMessages.contains(newMessageID)) {
     			receivedMessages.add(newMessageID);
@@ -182,15 +185,15 @@ public class PerfectLinkNode {
    
    private void sendAck(InetAddress addr, int port, int seqNr) {
 //	   System.out.println("Ack message " + seqNr);
-	   Message ackMessage = new Message(true, seqNr, new byte[0]);
-	   OutgoingPacket ackPacket = new OutgoingPacket(ackMessage, addr, port);
+	   NetMessage ackMessage = new NetMessage(true, seqNr, new byte[0], addr, port);
+	   OutgoingPacket ackPacket = new OutgoingPacket(ackMessage);
 	   basicLinkNode.send(ackPacket);
    }
    
    
    private OutgoingPacket makeNextPacketToSend(int maxNbOfMessages) {
-	   List<Message> messages = new LinkedList<Message>();
-	   Message firstMsg = null;
+	   List<NetMessage> messages = new LinkedList<NetMessage>();
+	   NetMessage firstMsg = null;
 		try {
 			firstMsg = waitingForSend.take();
 		} catch (InterruptedException e) {
@@ -200,17 +203,17 @@ public class PerfectLinkNode {
 	   InetAddress dstAddr = firstMsg.getAddr();
 	   int dstPort = firstMsg.getPort();
 	   
-	   messages.add(firstPacket.getMessages().get(0));	//there is only one message anyways
+	   messages.add(firstMsg);
 	   for(int i = 0; !waitingForSend.isEmpty() && i < maxNbOfMessages-1; ++i) {
-		   OutgoingPacket nextPacket = waitingForSend.peek();
-		   if(nextPacket.getDstAddress().equals(dstAddr) && nextPacket.getDstPort() == dstPort) {
+		   NetMessage nextMsg = waitingForSend.peek();
+		   if(nextMsg.getAddr().equals(dstAddr) && nextMsg.getPort() == dstPort) {
 			   waitingForSend.remove();
-			   messages.add(nextPacket.getMessages().get(0));
+			   messages.add(nextMsg);
 		   } else {
 			   break;
 		   }
 	   }
-	   return new OutgoingPacket(messages, dstAddr, dstPort);
+	   return new OutgoingPacket(messages);
    }
    
 
