@@ -33,9 +33,7 @@ public class PerfectLinkNode {
 	private LinkedBlockingQueue<NetMessage> waitingForSend;
 		
 	private static AtomicBoolean allowCommunication;
-		
-	protected static CommunicationLogger logger;
-	
+			
 	private int maxUnackedPacketsPerProcess;
 	
 	private int nextMsgSeqNb;
@@ -48,7 +46,6 @@ public class PerfectLinkNode {
 		receivedMessages = new HashSet<NetMessageID>();
 		waitingForSend = new LinkedBlockingQueue<NetMessage>(NetworkParams.WAITING_FOR_SEND_MAX_SIZE);
 		allowCommunication = new AtomicBoolean(true);
-		logger = new CommunicationLogger();
 		maxUnackedPacketsPerProcess = NetworkParams.getInstance().getMaxUnackedPacketsPerProcess();
 		nextMsgSeqNb = 1;
 		startRunningLoops();
@@ -66,6 +63,8 @@ public class PerfectLinkNode {
     }
     
 	public List<byte[]> deliver() {
+		while(!allowCommunication.get()) {
+		}
 		IncomingPacket packet = null;
 		Boolean receivedMessageToDeliver = false;
 		while(!receivedMessageToDeliver) {
@@ -81,21 +80,13 @@ public class PerfectLinkNode {
 
     
     public static void simulateProcessCrash() {
-    	if(allowCommunication != null && logger != null) {
+    	if(allowCommunication != null) {
     		allowCommunication.compareAndExchangeAcquire(true, false);
-        	CommunicationLogger.writeLogsToFile();
     	}
     }
     
     
     private void startRunningLoops() {
-    	 Thread deliverThread = new Thread() {
-         	@Override
-             public void run() {
-                 runDeliverLoop();
-             }
-         };
-         deliverThread.start();
          
          Thread sendThread = new Thread() {
          	@Override
@@ -125,9 +116,6 @@ public class PerfectLinkNode {
 	    		if(packet != null) {
 		    		basicLinkNode.send(packet);
 		    		unAckedPackets.put(packet.getPacketSeqNr(), packet);
-					for(NetMessage msg : packet.getMessages()) {
-						logger.logSend(msg.getSequenceNumber());
-					}
 	    		}
     		}
     	}
@@ -147,19 +135,7 @@ public class PerfectLinkNode {
     			}
     		}
     	}
-    }
-    
-    public void runDeliverLoop() {
-    	while(true) {
-    		if(!allowCommunication.get()) {
-				return;
-			}
-    		IncomingPacket packet = basicLinkNode.receive();
-    		for(NetMessage msg : packet.getMessages()) {
-        		logger.logDeliver(packet.getPort(), msg.getSequenceNumber());
-			}
-    	}
-    }    
+    } 
    
     
     private Boolean handleReceivedPacket(IncomingPacket packet) {

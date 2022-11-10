@@ -5,10 +5,13 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import cs451.Custom.CommunicationLogger;
+import cs451.Custom.Broadcast.URB;
 import cs451.Custom.Helpers.ConfigReader;
 import cs451.Custom.Helpers.ProcessIDHelpers;
 import cs451.Custom.Links.PerfectLinkNode;
+import cs451.Custom.Message.NetMessage;
 import cs451.Custom.Network.NetworkParams;
+import cs451.Custom.Packet.IncomingPacket;
 
 public class Main {
 	
@@ -20,6 +23,10 @@ public class Main {
         //write/flush output file if necessary
         System.out.println("Writing output.");
         PerfectLinkNode.simulateProcessCrash();
+        CommunicationLogger logger = CommunicationLogger.getInstance();
+        if(logger != null) {
+        	CommunicationLogger.writeLogsToFile();
+        }
     }
 
     private static void initSignalHandlers() {
@@ -32,13 +39,14 @@ public class Main {
     }
 
     public static void main(String[] args) throws InterruptedException, SocketException, UnknownHostException {
-        Parser parser = new Parser(args);
+    	Parser parser = new Parser(args);
         parser.parse();
         NetworkParams.setInstance(parser.hosts().size());
+        CommunicationLogger.setInstance(parser.output());
         initSignalHandlers();
 
         // example
-        long pid = ProcessHandle.current().pid();
+        int pid = parser.myId();
         System.out.println("My PID: " + pid + "\n");
         System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
 
@@ -71,10 +79,6 @@ public class Main {
         System.out.println("===============");
         System.out.println(parser.config() + "\n");
 
-        System.out.println("Doing some initialization\n");
-        CommunicationLogger.setPathToOutput(parser.output());
-        PerfectLinkNode thisNode = new PerfectLinkNode(myIp, myPort, parser.myId());
-
         System.out.println("Broadcasting and delivering messages...\n");
         
         ConfigReader configReader = new ConfigReader(parser.config());
@@ -82,21 +86,34 @@ public class Main {
         System.out.println("===============");
         System.out.println(configReader.getNbMessages() + " messages to " + configReader.getDestPid() + "\n");
 
+        PerfectLinkNode linkNode = new PerfectLinkNode(myIp, myPort, parser.myId());
+        URB urb = new URB(parser.hosts(), pid, linkNode);
+        
+        
+        Thread deliverThread = new Thread() {
+         	@Override
+             public void run() {
+         		while(true) {
+            		urb.deliver();
+            	}
+             }
+         };
+         deliverThread.start();
         
         //Enqueue messages to be sent
         long messagesToSend = configReader.getNbMessages();
         int dstPid = configReader.getDestPid();
         InetAddress dstAddr = InetAddress.getByName(parser.hosts().get(dstPid-1).getIp());
         int dstPort = ProcessIDHelpers.getPortFromId(dstPid);
+       
+        
         
         Thread addNewMessagesThread = new Thread() {
         	@Override
             public void run() {
         	 for(int i = 0; i < messagesToSend; ++i) {
-        		 if(dstPid != parser.myId()) {
-        			 thisNode.send(dstAddr, dstPort, BigInteger.valueOf(i+1).toByteArray());
-        		 }
-             	}
+        		urb.broadcast(BigInteger.valueOf(i+1).toByteArray());
+             }
         	}
         };
         addNewMessagesThread.start();

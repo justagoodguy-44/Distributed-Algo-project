@@ -7,18 +7,32 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Logger;
 
 import cs451.Custom.Helpers.ProcessIDHelpers;
+import cs451.Custom.Network.NetworkParams;
 
 public class CommunicationLogger {
+	
+	private static CommunicationLogger logger = null;
 	
 	private static String pathToOutput;
 	private File logFile;
 	private static FileWriter fileWriter;
 	private static Queue<String> toBeWrittenToFile;
+	
+	
+	public static void setInstance(String pathToOutput) {
+		logger = new CommunicationLogger(pathToOutput);
+	}
+	
+	public static CommunicationLogger getInstance() {
+		return logger;
+	}
 			
-	public CommunicationLogger() {
-		toBeWrittenToFile = new ConcurrentLinkedQueue<String>();		
+	private CommunicationLogger(String pathToOutput) {
+		this.pathToOutput = pathToOutput;
+		this.toBeWrittenToFile = new ConcurrentLinkedQueue<>();
 		InitLogFile();
 	}
 	
@@ -31,8 +45,8 @@ public class CommunicationLogger {
 		toBeWrittenToFile.add(log);
 	}
 	
-	public void logDeliver(int srcPort, int seqNr) {
-		String log = String.format("d %d %d \n", ProcessIDHelpers.getIdFromPort(srcPort) , seqNr);
+	public void logDeliver(int srcPid, int seqNr) {
+		String log = String.format("d %d %d \n", srcPid , seqNr);
 		toBeWrittenToFile.add(log);
 	}
 	

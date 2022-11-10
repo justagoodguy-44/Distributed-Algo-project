@@ -8,7 +8,6 @@ public class NetMessageSerializer {
 	
 	private static final int ACK_SERIALIZED_LEN = Byte.BYTES;
 	private static final int SEQ_NB_SERIALIZED_LEN = Integer.BYTES;
-	private static final int DATA_SERIALIZED_LEN = Integer.BYTES;
 	
 	private static final int ACK_SERIALIZED_POS = 0;
     private static final int SEQ_NB_SERIALIZED_POS = ACK_SERIALIZED_POS + ACK_SERIALIZED_LEN;
@@ -31,12 +30,12 @@ public class NetMessageSerializer {
     	return messageArray;
 	}
 	
-	public static NetMessage deserializeFromNetwork(byte[] serializedWrapper, InetAddress srcAddress, int srcPort) {
-		ByteBuffer msgBuffer = ByteBuffer.wrap(serializedWrapper);
-    	byte isAckAndLastFrag = msgBuffer.get();
-    	boolean isAck = (isAckAndLastFrag & 1) > 0? true:false;
+	public static NetMessage deserializeFromNetwork(byte[] serializedMsg, InetAddress srcAddress, int srcPort) {
+		ByteBuffer msgBuffer = ByteBuffer.wrap(serializedMsg);
+    	byte isAckByte = msgBuffer.get();
+    	boolean isAck = (isAckByte & 1) > 0? true:false;
     	int seqNb = msgBuffer.getInt();
-    	byte[] data = Arrays.copyOfRange(serializedWrapper, DATA_SERIALIZED_POS, serializedWrapper.length);
+    	byte[] data = Arrays.copyOfRange(serializedMsg, DATA_SERIALIZED_POS, serializedMsg.length);
     	return new NetMessage(isAck, seqNb, data, srcAddress, srcPort);
 	}
 
