@@ -4,6 +4,8 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+
 import cs451.Custom.CommunicationLogger;
 import cs451.Custom.Broadcast.URB;
 import cs451.Custom.Helpers.ConfigReader;
@@ -111,9 +113,11 @@ public class Main {
         Thread addNewMessagesThread = new Thread() {
         	@Override
             public void run() {
-        	 for(int i = 0; i < messagesToSend; ++i) {
-        		urb.broadcast(BigInteger.valueOf(i+1).toByteArray());
-             }
+	        	for(int i = 0; i < messagesToSend; ++i) {
+		        	ByteBuffer data = ByteBuffer.allocate(Integer.BYTES); 
+	        		data.putInt(i+1); 
+	        		urb.broadcast(data.array());
+            	}
         	}
         };
         addNewMessagesThread.start();

@@ -14,6 +14,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import cs451.Custom.CommunicationLogger;
+import cs451.Custom.Deliverable;
+import cs451.Custom.Helpers.ProcessIDHelpers;
 import cs451.Custom.Message.NetMessage;
 import cs451.Custom.Message.NetMessageID;
 import cs451.Custom.Network.NetworkParams;
@@ -62,7 +64,7 @@ public class PerfectLinkNode {
     	nextMsgSeqNb++;
     }
     
-	public List<byte[]> deliver() {
+	public Deliverable deliver() {
 		while(!allowCommunication.get()) {
 		}
 		IncomingPacket packet = null;
@@ -75,7 +77,8 @@ public class PerfectLinkNode {
 		for(NetMessage msg : packet.getMessages()) {
 			messagesData.add(msg.getData());
 		}
-		return messagesData;
+		int senderPid = ProcessIDHelpers.getIdFromPort(packet.getPort());
+		return new Deliverable(messagesData, senderPid);
 	}
 
     
@@ -146,7 +149,7 @@ public class PerfectLinkNode {
     	int port = packet.getPort();
 	   
     	if(messages.size()  == 1 && messages.get(0).isAck()) {
-//    		System.out.println("Ack message " + message.getSequenceNumber()  + " from " + port);
+    		System.out.println("Received ack for message " + messages.get(0).getSequenceNumber()  + " from " + port);
     		unAckedPackets.remove(packet.getPacketSeqNr());
     	} else {
     		NetMessageID newMessageID = new NetMessageID(seqNr, addr, port);
@@ -160,7 +163,7 @@ public class PerfectLinkNode {
 	}
    
    private void sendAck(InetAddress addr, int port, int seqNr) {
-//	   System.out.println("Ack message " + seqNr);
+	   System.out.println("Send ack for message " + seqNr);
 	   NetMessage ackMessage = new NetMessage(true, seqNr, new byte[0], addr, port);
 	   OutgoingPacket ackPacket = new OutgoingPacket(ackMessage);
 	   basicLinkNode.send(ackPacket);
@@ -191,6 +194,7 @@ public class PerfectLinkNode {
 	   }
 	   return new OutgoingPacket(messages);
    }
+
    
 
 }

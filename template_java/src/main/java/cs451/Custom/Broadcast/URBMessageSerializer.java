@@ -14,7 +14,10 @@ public class URBMessageSerializer {
 	private static final int DATA_SERIALIZED_POS = SEQ_NB_SERIALIZED_POS + SEQ_NB_SERIALIZED_LEN;
 	
 	public static byte[] serializeForNet(URBMessage msg) {
-		int bytesNeeded = DATA_SERIALIZED_POS + 1 + msg.getData().length;
+		int bytesNeeded = DATA_SERIALIZED_POS + msg.getData().length;
+		System.out.println("data_ser_pos " + DATA_SERIALIZED_POS);
+		System.out.println("bytes neded " + bytesNeeded);
+
 		ByteBuffer serializedMessage = ByteBuffer.allocate(bytesNeeded);
 		serializedMessage.putInt(SRC_PID_SERIALIZED_POS, msg.getSrcPid());
 		serializedMessage.putInt(SEQ_NB_SERIALIZED_POS, msg.getSeqNb());

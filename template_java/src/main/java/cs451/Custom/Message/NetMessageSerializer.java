@@ -15,7 +15,7 @@ public class NetMessageSerializer {
 	
 	public static byte[] serializeForNetwork(NetMessage msg) {
 		byte[] data = msg.getData();
-    	int bytesNeeded = DATA_SERIALIZED_POS + 1 + data.length;
+    	int bytesNeeded = DATA_SERIALIZED_POS + data.length;
     	ByteBuffer serializedMessage = ByteBuffer.allocate(bytesNeeded);
     	//lsb represents isAck and the next bit represents isLastFrag
     	byte isAckByte = (byte)(msg.isAck()?1:0);

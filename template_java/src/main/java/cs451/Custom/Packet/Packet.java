@@ -22,6 +22,7 @@ public abstract class Packet {
 	public Packet(NetMessage msg) {
 		this.messages = new LinkedList<NetMessage>();
     	messages.add(msg);
+		this.packetSeqNr = getPackageSeqNbFromMessages(messages);
 	}
 	
 	
@@ -47,6 +48,7 @@ public abstract class Packet {
 	public int getPort() {
 		return messages.get(0).getPort();
 	}
+	
 	
 	/**
 	 * A sequence number for the package will be given by taking the sequence number of the first message it contains

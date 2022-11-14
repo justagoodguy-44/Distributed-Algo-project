@@ -25,6 +25,7 @@ public class NetMessage {
      * it is being sent to the network
      */
     public NetMessage(boolean isAck, int seqNb, byte[] data, InetAddress addr, int port){
+    	this.isAck = isAck;
         this.seqNb = seqNb;
         this.data = data;
         this.addr = addr;

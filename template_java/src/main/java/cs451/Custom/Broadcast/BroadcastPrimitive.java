@@ -1,13 +1,14 @@
 package cs451.Custom.Broadcast;
 
-import java.util.List;
+
+import cs451.Custom.Deliverable;
 
 
 public interface BroadcastPrimitive {
 	
 	public void broadcast(byte[] data);
 	
-	public List<byte[]> deliver();
+	public Deliverable deliver();
 	
 	
 

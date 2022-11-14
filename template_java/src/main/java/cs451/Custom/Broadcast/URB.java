@@ -10,6 +10,7 @@ import java.util.Set;
 import cs451.Host;
 import cs451.Custom.AckVector;
 import cs451.Custom.CommunicationLogger;
+import cs451.Custom.Deliverable;
 import cs451.Custom.Links.PerfectLinkNode;
 import cs451.Custom.Message.NetMessage;
 
@@ -17,7 +18,7 @@ public class URB implements BroadcastPrimitive{
 	
 	private List<Host> hosts;
 	private int pid;
-	private BestEffortBroadcast beb;
+	private BEB beb;
 	private Set<Long> delivered;
 	//Each element of this list represents a message, and the array of booleans represents which processes have acked this message and which haven´t
 	private Map<Long, AckVector> ackRecords;
@@ -29,7 +30,7 @@ public class URB implements BroadcastPrimitive{
 		this.hosts = hosts;
 		this.pid = pid;
 		
-		this.beb = new BestEffortBroadcast(hosts, linkNode);
+		this.beb = new BEB(hosts, linkNode);
 		this.delivered = new HashSet<>();
 		this.ackRecords = new HashMap<>();
 	}
@@ -38,25 +39,35 @@ public class URB implements BroadcastPrimitive{
 	public void broadcast(byte[] data) {
 		int seqNb = getNextSeqNb();
 		URBMessage urbMessage = new URBMessage(pid, seqNb, data);
-		beb.broadcast(URBMessageSerializer.serializeForNet(urbMessage));
+		byte[] serializedMsg = URBMessageSerializer.serializeForNet(urbMessage);
+		beb.broadcast(serializedMsg);
+		System.out.println("size of serialized msg is " + serializedMsg.length);
+
 		logger.logSend(seqNb);
 	}
 
 	@Override
-	public List<byte[]> deliver() {
+	public Deliverable deliver() {
 		List<byte[]> newDeliveries = new LinkedList<>();
+		int senderPid = -1;
 		while(newDeliveries.size() == 0) {
-			List<byte[]> serializedMessages = beb.deliver();
+			Deliverable deliverable = beb.deliver();
+			senderPid = deliverable.getSenderPid();
+			List<byte[]> serializedMessages = deliverable.getData();
+			System.out.println("nb of msgs in packet is " + serializedMessages.size());
+			System.out.println("and msg sender id is " + senderPid);
 			for(byte[] serializedMsg : serializedMessages) {
 				URBMessage msg = URBMessageSerializer.deserializeFromNet(serializedMsg);
 				long id = msg.getId();
 				
 				if(!ackRecords.containsKey(id)) {
 					AckVector acksForThisMsg = new AckVector(hosts.size());
-					acksForThisMsg.addAck(msg.getSrcPid()-1);
+					acksForThisMsg.addAck(senderPid-1);
 					acksForThisMsg.addAck(pid-1);
 					ackRecords.put(id, acksForThisMsg);
-					beb.broadcast(serializedMsg);
+					if(msg.getSrcPid() != pid) {
+						beb.broadcast(serializedMsg);
+					}
 				}
 				else {
 					AckVector acksForThisMsg = ackRecords.get(id);
@@ -71,7 +82,7 @@ public class URB implements BroadcastPrimitive{
 				}
 			}
 		}
-		return newDeliveries;
+		return new Deliverable(newDeliveries, senderPid);
 	}
 	
 	private int getNextSeqNb() {
