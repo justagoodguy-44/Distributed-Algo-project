@@ -1,0 +1,3 @@
+optimisations:
+1) Don't wait for the possibility of f+1 acks if receive an ack, but still accept previous state acks, so that if you reach f+1 you know you can decide. It sort of combines both
+2)Object pooling and thread pooling

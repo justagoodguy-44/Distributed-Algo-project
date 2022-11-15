@@ -69,7 +69,7 @@ public class URB implements BroadcastPrimitive{
 				}
 				else {
 					AckVector acksForThisMsg = ackRecords.get(id);
-					acksForThisMsg.addAck(msg.getSrcPid());
+					acksForThisMsg.addAck(msg.getSrcPid()-1);
 					if(acksForThisMsg.getNbOfAcks() > hosts.size()/2) {
 						if(!delivered.contains(id)) {
 							delivered.add(id);

@@ -21,9 +21,8 @@ public class Host {
                 ip = ipTest.substring(1);
             } else {
                 ip = InetAddress.getByName(ipTest.split(IP_START_REGEX)[0]).getHostAddress();
-                ipInetAddr = InetAddress.getByName(ip);
             }
-
+            ipInetAddr = InetAddress.getByName(ip);
             port = Integer.parseInt(portString);
             if (port <= 0) {
                 System.err.println("Port in the hosts file must be a positive number!");

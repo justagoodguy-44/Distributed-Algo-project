@@ -27,7 +27,7 @@ public class BasicLinkNode {
 
 	
 	public void send(OutgoingPacket packet) {
-//		System.out.println("Send message " + packet.getMessage().getSequenceNumber());
+//		System.out.println("senidng " + packet.getPacketSeqNr());
 		packet.setTimeWhenSent(System.currentTimeMillis());
 		byte[] serializePacket = PacketSerializer.serializePacket(packet);
 		DatagramPacket datagramPacket = new DatagramPacket(serializePacket, 

@@ -149,6 +149,8 @@ public class PerfectLinkNode {
     			if(!allowCommunication.get()) {
     				return;
     			}
+//    	    	System.out.println("nb of unacked is " + unAckedPackets.values().size());
+
     			long currentTimeMillis = System.currentTimeMillis();
     			if(currentTimeMillis - packet.getTimeWhenSent() > NetworkParams.RESEND_TIMER_MILLIS) {
     				packet.setTimeWhenSent(currentTimeMillis);	//will be overwritten in Send but it is necessary to update it immediatly to avoid sending it a bunch of times
@@ -167,7 +169,7 @@ public class PerfectLinkNode {
     	InetAddress addr = packet.getAddr();
     	int port = packet.getPort();
 	   
-    	if(messages.size()  == 1 && messages.get(0).isAck()) {
+    	if(messages.size() == 1 && messages.get(0).isAck()) {
 //    		System.out.println("Received ack for message " + messages.get(0).getSequenceNumber()  + " from " + port);
     		unAckedPackets.remove(packet.getPacketSeqNr());
     	} else {
@@ -181,6 +183,7 @@ public class PerfectLinkNode {
     	return shouldDeliver;
 	}
    
+    
    private void sendAck(InetAddress addr, int port, int seqNr) {
 //	   System.out.println("Send ack for message " + seqNr);
 	   NetMessage ackMessage = new NetMessage(true, seqNr, new byte[0], addr, port);
@@ -197,6 +200,7 @@ public class PerfectLinkNode {
 	   }
 	   return new OutgoingPacket(messagesToSend);
    }
+   
    
    private List<WaitingMsgQueue> initWaitingForSend() {
 		int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
