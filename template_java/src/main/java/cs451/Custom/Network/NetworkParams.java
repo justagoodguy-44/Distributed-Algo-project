@@ -12,7 +12,7 @@ public class NetworkParams {
 				
 	public static final int MAX_UNACKED_PACKETS = 15_000;
 	
-	public static final int MAX_PACKET_SIZE = 128;
+	public static final int MAX_PACKET_SIZE = 256;
 
 	
 	private static int nbOfHosts;

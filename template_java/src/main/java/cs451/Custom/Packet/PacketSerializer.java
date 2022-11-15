@@ -28,6 +28,7 @@ public class PacketSerializer {
 		ByteBuffer serializedMessages = ByteBuffer.allocate(headerLength + totalMsgBytes);
 		serializedMessages.putInt(nbOfMessages);
 		for(int i = 0; i < nbOfMessages; ++i) {
+//			System.out.println("The created msg length is " + msgBytes.get(i).length);
 			serializedMessages.putInt(msgBytes.get(i).length);
 		}
 		for(int i = 0; i < nbOfMessages; ++i) {
@@ -41,12 +42,12 @@ public class PacketSerializer {
 	
 	public static IncomingPacket deserializeFromNetwork(byte[] serializedPacket, InetAddress srcAddr, int srcPort) {
 		ByteBuffer packetBuffer = ByteBuffer.wrap(serializedPacket);
-		int nbOfMessages = packetBuffer.getInt(NB_OF_MESSAGES_POS);
+		int nbOfMessages = packetBuffer.getInt();
 		int messagesOffset = MESSAGE_LENGTHS_POS + (nbOfMessages * Integer.BYTES);
 		List<NetMessage> messages = new LinkedList<NetMessage>();
 		int thisMessageOffset = messagesOffset;
 		for(int i = 0; i < nbOfMessages; ++i) {
-			int thisMessageLength = packetBuffer.getInt(MESSAGE_LENGTHS_POS + (i * Integer.BYTES));
+			int thisMessageLength = packetBuffer.getInt();
 			byte[] msgData = Arrays.copyOfRange(serializedPacket, thisMessageOffset, thisMessageOffset + thisMessageLength);
 			NetMessage msg = NetMessageSerializer.deserializeFromNetwork(msgData, srcAddr, srcPort);
 			messages.add(msg);

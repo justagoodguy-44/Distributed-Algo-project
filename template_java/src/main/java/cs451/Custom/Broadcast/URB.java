@@ -41,8 +41,6 @@ public class URB implements BroadcastPrimitive{
 		URBMessage urbMessage = new URBMessage(pid, seqNb, data);
 		byte[] serializedMsg = URBMessageSerializer.serializeForNet(urbMessage);
 		beb.broadcast(serializedMsg);
-		System.out.println("size of serialized msg is " + serializedMsg.length);
-
 		logger.logSend(seqNb);
 	}
 
@@ -54,8 +52,8 @@ public class URB implements BroadcastPrimitive{
 			Deliverable deliverable = beb.deliver();
 			senderPid = deliverable.getSenderPid();
 			List<byte[]> serializedMessages = deliverable.getData();
-			System.out.println("nb of msgs in packet is " + serializedMessages.size());
-			System.out.println("and msg sender id is " + senderPid);
+//			System.out.println("nb of msgs in packet is " + serializedMessages.size());
+//			System.out.println("and msg sender id is " + senderPid);
 			for(byte[] serializedMsg : serializedMessages) {
 				URBMessage msg = URBMessageSerializer.deserializeFromNet(serializedMsg);
 				long id = msg.getId();
