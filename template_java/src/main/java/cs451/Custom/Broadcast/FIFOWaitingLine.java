@@ -13,6 +13,7 @@ public class FIFOWaitingLine {
 	public FIFOWaitingLine() {
 		waitingLine = new HashMap<>();
 		lastDeliveredSeqNb = 0;
+		
 	}
 	
 	/**
@@ -21,6 +22,7 @@ public class FIFOWaitingLine {
 	 * @return: the list of messages that can be delivered after adding this message
 	 */
 	public List<URBMessage> addAndRetrieve(URBMessage msg){
+//		System.out.println(waitingLine.size());
 		int msgSeqNb = msg.getSeqNb();
 		if(msgSeqNb != lastDeliveredSeqNb + 1) {
 			waitingLine.put(msgSeqNb, msg);
@@ -35,10 +37,9 @@ public class FIFOWaitingLine {
 	
 	private List<URBMessage> popValidMessages(){
 		List<URBMessage> validMessages = new LinkedList<>();
-		URBMessage nextMsg = null;
 		boolean checkNext = true;
 		while(checkNext) {
-			nextMsg = waitingLine.remove(lastDeliveredSeqNb+1);
+			URBMessage nextMsg = waitingLine.remove(lastDeliveredSeqNb+1);
 			if(nextMsg == null) {
 				checkNext = false;
 			} else {

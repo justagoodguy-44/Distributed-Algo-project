@@ -23,7 +23,7 @@ public class URB {
 	//Each element of this list represents a message, and the array of booleans represents which processes have acked this message and which haven´t
 	private Map<Long, AckVector> ackRecords;
 	private int nextSeqNb = 1;
-	private CommunicationLogger logger = CommunicationLogger.getInstance()
+	private CommunicationLogger logger = CommunicationLogger.getInstance();
 ;	
 	
 	public URB(List<Host> hosts, int pid, PerfectLinkNode linkNode) {
@@ -57,25 +57,24 @@ public class URB {
 				byte[] serializedMsg = netMsg.getData();
 				URBMessage msg = URBMessageSerializer.deserializeFromNet(serializedMsg);
 				long id = msg.getId();
-				System.out.println(msg.getSrcPid());
 
-				
-				if(!ackRecords.containsKey(id)) {
-					AckVector acksForThisMsg = new AckVector(hosts.size());
-					acksForThisMsg.addAck(senderPid-1);
-					acksForThisMsg.addAck(pid-1);
-					ackRecords.put(id, acksForThisMsg);
-					if(msg.getSrcPid() != pid) {
-						beb.broadcast(serializedMsg);
+				if(!delivered.contains(id)) {
+					if(!ackRecords.containsKey(id)) {
+						AckVector acksForThisMsg = new AckVector(hosts.size());
+						acksForThisMsg.addAck(senderPid-1);
+						acksForThisMsg.addAck(pid-1);
+						ackRecords.put(id, acksForThisMsg);
+						if(msg.getSrcPid() != pid) {
+							beb.broadcast(serializedMsg);
+						}
 					}
-				}
-				else {
-					AckVector acksForThisMsg = ackRecords.get(id);
-					acksForThisMsg.addAck(senderPid-1);
-					if(acksForThisMsg.getNbOfAcks() > hosts.size()/2) {
-						if(!delivered.contains(id)) {
+					else {
+						AckVector acksForThisMsg = ackRecords.get(id);
+						acksForThisMsg.addAck(senderPid-1);
+						if(acksForThisMsg.getNbOfAcks() > hosts.size()/2) {
 							delivered.add(id);
 							toBeDelivered.add(msg);
+							ackRecords.remove(id);
 						}
 					}
 				}

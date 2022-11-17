@@ -30,9 +30,9 @@ public class FIFO {
 	
 	public List<URBMessage> deliver() {
 		List<URBMessage> urbMessages = urb.deliver();
-		int srcPid = urbMessages.get(0).getSrcPid();
 		List<URBMessage> toBeDelivered = new LinkedList<>();
 		for(URBMessage msg : urbMessages) {
+			int srcPid = msg.getSrcPid();
 			FIFOWaitingLine waitingLine = waitingLines.get(srcPid-1);
 			List<URBMessage> availableMsgsInThisLine = waitingLine.addAndRetrieve(msg);
 			if(availableMsgsInThisLine != null) {

@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
+import cs451.Custom.Helpers.ProcessIDHelpers;
 import cs451.Custom.Network.NetworkParams;
 import cs451.Custom.Packet.IncomingPacket;
 import cs451.Custom.Packet.OutgoingPacket;
@@ -27,7 +28,7 @@ public class BasicLinkNode {
 
 	
 	public void send(OutgoingPacket packet) {
-//		System.out.println("senidng " + packet.getPacketSeqNr());
+//		System.out.println("senidng " + packet.getPacketSeqNr() + " to " + ProcessIDHelpers.getIdFromPort(packet.getPort()));
 		packet.setTimeWhenSent(System.currentTimeMillis());
 		byte[] serializePacket = PacketSerializer.serializePacket(packet);
 		DatagramPacket datagramPacket = new DatagramPacket(serializePacket, 

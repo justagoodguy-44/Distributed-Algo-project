@@ -31,7 +31,7 @@ public class PerfectLinkNode {
     It maps the message sequence number to the message*/
     private Map<Integer, OutgoingPacket> unAckedPackets;
     
-	private Set<NetMessageID> receivedMessages;
+	private Set<NetMessageID> delivered;
 	
 	//the outer array represents the different hosts, and each has a list of messages that need to be sent to it
 	private List<WaitingMsgQueue> waitingForSend; 
@@ -49,7 +49,7 @@ public class PerfectLinkNode {
     public PerfectLinkNode(InetAddress addr, int port, int processId) throws SocketException {
 		basicLinkNode = new BasicLinkNode(addr, port, processId);
 		unAckedPackets = new ConcurrentHashMap<Integer, OutgoingPacket>();
-		receivedMessages = new HashSet<NetMessageID>();
+		delivered = new HashSet<NetMessageID>();
 		waitingForSend = initWaitingForSend();
 		allowCommunication = new AtomicBoolean(true);
 		maxUnackedPacketsPerProcess = NetworkParams.getInstance().getMaxUnackedPacketsPerProcess();
@@ -169,8 +169,8 @@ public class PerfectLinkNode {
     	} else {
     		NetMessageID newMessageID = new NetMessageID(seqNr, addr, port);
     		sendAck(addr, port, seqNr);
-    		if(!receivedMessages.contains(newMessageID)) {
-    			receivedMessages.add(newMessageID);
+    		if(!delivered.contains(newMessageID)) {
+    			delivered.add(newMessageID);
 			  	shouldDeliver = true;
     		}
     	}
