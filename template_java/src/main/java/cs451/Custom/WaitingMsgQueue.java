@@ -3,7 +3,7 @@ package cs451.Custom;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import cs451.Custom.Message.NetMessage;
+import cs451.Custom.Network.NetMessage;
 import cs451.Custom.Network.NetworkParams;
 
 public class WaitingMsgQueue {

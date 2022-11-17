@@ -6,8 +6,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import cs451.Custom.Message.NetMessage;
-import cs451.Custom.Message.NetMessageSerializer;
+import cs451.Custom.Network.NetMessage;
+import cs451.Custom.Network.NetMessageSerializer;
 
 public class PacketSerializer {
 	

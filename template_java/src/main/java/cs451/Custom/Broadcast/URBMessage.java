@@ -3,13 +3,14 @@ package cs451.Custom.Broadcast;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import cs451.Custom.Message.NetMessage;
-import cs451.Custom.Message.NetMessageID;
+import cs451.Custom.Message;
+import cs451.Custom.Network.NetMessage;
+import cs451.Custom.Network.NetMessageID;
 
 /**
  * Represents a uniform reliable broadcast message
  */
-public class URBMessage {
+public class URBMessage extends Message{
 	
 	private int srcPid;
 	private int seqNb;

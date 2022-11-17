@@ -7,11 +7,12 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
 import cs451.Custom.CommunicationLogger;
+import cs451.Custom.Broadcast.FIFO;
 import cs451.Custom.Broadcast.URB;
 import cs451.Custom.Helpers.ConfigReader;
 import cs451.Custom.Helpers.ProcessIDHelpers;
 import cs451.Custom.Links.PerfectLinkNode;
-import cs451.Custom.Message.NetMessage;
+import cs451.Custom.Network.NetMessage;
 import cs451.Custom.Network.NetworkParams;
 import cs451.Custom.Packet.IncomingPacket;
 
@@ -89,14 +90,14 @@ public class Main {
         System.out.println(configReader.getNbMessages() + " messages to " + configReader.getDestPid() + "\n");
 
         PerfectLinkNode linkNode = new PerfectLinkNode(myIp, myPort, parser.myId());
-        URB urb = new URB(parser.hosts(), pid, linkNode);
+        FIFO fifo = new FIFO(parser.hosts(), pid, linkNode);
         
         
         Thread deliverThread = new Thread() {
          	@Override
              public void run() {
          		while(true) {
-            		urb.deliver();
+            		fifo.deliver();
             	}
              }
          };
@@ -116,7 +117,7 @@ public class Main {
 	        	for(int i = 0; i < messagesToSend; ++i) {
 		        	ByteBuffer data = ByteBuffer.allocate(Integer.BYTES); 
 	        		data.putInt(i+1); 
-	        		urb.broadcast(data.array());
+	        		fifo.broadcast(data.array());
             	}
         	}
         };

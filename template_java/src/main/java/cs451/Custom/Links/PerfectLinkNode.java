@@ -15,11 +15,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import cs451.Custom.CommunicationLogger;
-import cs451.Custom.Deliverable;
 import cs451.Custom.WaitingMsgQueue;
 import cs451.Custom.Helpers.ProcessIDHelpers;
-import cs451.Custom.Message.NetMessage;
-import cs451.Custom.Message.NetMessageID;
+import cs451.Custom.Network.NetMessage;
+import cs451.Custom.Network.NetMessageID;
 import cs451.Custom.Network.NetworkParams;
 import cs451.Custom.Packet.IncomingPacket;
 import cs451.Custom.Packet.OutgoingPacket;
@@ -70,7 +69,7 @@ public class PerfectLinkNode {
     	nextMsgSeqNb++;
     }
     
-	public Deliverable deliver() {
+	public List<NetMessage> deliver() {
 		while(!allowCommunication.get()) {
 		}
 		IncomingPacket packet = null;
@@ -79,12 +78,7 @@ public class PerfectLinkNode {
 			packet = basicLinkNode.receive();
 			receivedMessageToDeliver = handleReceivedPacket(packet);
 		}
-		List<byte[]> messagesData = new LinkedList<byte[]>();
-		for(NetMessage msg : packet.getMessages()) {
-			messagesData.add(msg.getData());
-		}
-		int senderPid = ProcessIDHelpers.getIdFromPort(packet.getPort());
-		return new Deliverable(messagesData, senderPid);
+		return packet.getMessages();
 	}
 
     
@@ -129,7 +123,7 @@ public class PerfectLinkNode {
 //    			System.out.println(waitingForSend.size());
 	    		OutgoingPacket packet = makeNextPacketToSend(NetworkParams.MAX_NB_OF_MSG_PER_PACKET);
 	    		waitingQueue.resetSkipCounter();
-	    		System.out.println("Nb of msg in packet is " + packet.getMessages().size());
+//	    		System.out.println("Nb of msg in packet is " + packet.getMessages().size());
 	    		if(packet != null) {
 		    		basicLinkNode.send(packet);
 		    		unAckedPackets.put(packet.getPacketSeqNr(), packet);

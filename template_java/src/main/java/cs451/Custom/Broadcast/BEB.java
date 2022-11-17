@@ -3,10 +3,10 @@ package cs451.Custom.Broadcast;
 import java.util.List;
 
 import cs451.Host;
-import cs451.Custom.Deliverable;
 import cs451.Custom.Links.PerfectLinkNode;
+import cs451.Custom.Network.NetMessage;
 
-public class BEB implements BroadcastPrimitive{
+public class BEB {
 	
 	private List<Host> hosts;
 	private PerfectLinkNode linkNode;
@@ -16,15 +16,13 @@ public class BEB implements BroadcastPrimitive{
 		this.linkNode = linkNode;
 	}
 
-	@Override
 	public void broadcast(byte[] data) {
 		for(Host host: hosts) { 
 			linkNode.send(host.getIpInetAddr(), host.getPort(), data);
 		}
 	}
 
-	@Override
-	public Deliverable deliver() {
+	public List<NetMessage> deliver() {
 		return linkNode.deliver();
 	}
 

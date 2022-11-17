@@ -1,4 +1,4 @@
-package cs451.Custom.Message;
+package cs451.Custom.Network;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;

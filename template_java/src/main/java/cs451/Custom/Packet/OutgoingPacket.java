@@ -2,7 +2,8 @@ package cs451.Custom.Packet;
 
 import java.net.InetAddress;
 import java.util.List;
-import cs451.Custom.Message.NetMessage;
+
+import cs451.Custom.Network.NetMessage;
 
 /**
  * Class representing a group of messages going to the same destination host

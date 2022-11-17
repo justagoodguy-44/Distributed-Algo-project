@@ -10,11 +10,11 @@ import java.util.Set;
 import cs451.Host;
 import cs451.Custom.AckVector;
 import cs451.Custom.CommunicationLogger;
-import cs451.Custom.Deliverable;
+import cs451.Custom.Helpers.ProcessIDHelpers;
 import cs451.Custom.Links.PerfectLinkNode;
-import cs451.Custom.Message.NetMessage;
+import cs451.Custom.Network.NetMessage;
 
-public class URB implements BroadcastPrimitive{
+public class URB {
 	
 	private List<Host> hosts;
 	private int pid;
@@ -35,7 +35,7 @@ public class URB implements BroadcastPrimitive{
 		this.ackRecords = new HashMap<>();
 	}
 
-	@Override
+	
 	public void broadcast(byte[] data) {
 		int seqNb = getNextSeqNb();
 		URBMessage urbMessage = new URBMessage(pid, seqNb, data);
@@ -44,19 +44,21 @@ public class URB implements BroadcastPrimitive{
 		logger.logSend(seqNb);
 	}
 
-	@Override
-	public Deliverable deliver() {
-		List<byte[]> newDeliveries = new LinkedList<>();
+	
+	public List<URBMessage> deliver() {
+		List<URBMessage> toBeDelivered = new LinkedList<>();
 		int senderPid = -1;
-		while(newDeliveries.size() == 0) {
-			Deliverable deliverable = beb.deliver();
-			senderPid = deliverable.getSenderPid();
-			List<byte[]> serializedMessages = deliverable.getData();
+		while(toBeDelivered.size() == 0) {
+			List<NetMessage> netMessages = beb.deliver();
+			senderPid = ProcessIDHelpers.getIdFromPort(netMessages.get(0).getPort());
 //			System.out.println("nb of msgs in packet is " + serializedMessages.size());
 //			System.out.println("and msg sender id is " + senderPid);
-			for(byte[] serializedMsg : serializedMessages) {
+			for(NetMessage netMsg : netMessages) {
+				byte[] serializedMsg = netMsg.getData();
 				URBMessage msg = URBMessageSerializer.deserializeFromNet(serializedMsg);
 				long id = msg.getId();
+				System.out.println(msg.getSrcPid());
+
 				
 				if(!ackRecords.containsKey(id)) {
 					AckVector acksForThisMsg = new AckVector(hosts.size());
@@ -69,18 +71,17 @@ public class URB implements BroadcastPrimitive{
 				}
 				else {
 					AckVector acksForThisMsg = ackRecords.get(id);
-					acksForThisMsg.addAck(msg.getSrcPid()-1);
+					acksForThisMsg.addAck(senderPid-1);
 					if(acksForThisMsg.getNbOfAcks() > hosts.size()/2) {
 						if(!delivered.contains(id)) {
 							delivered.add(id);
-							logger.logDeliver(msg.getSrcPid(), msg.getSeqNb());
-							newDeliveries.add(msg.getData());
+							toBeDelivered.add(msg);
 						}
 					}
 				}
 			}
 		}
-		return new Deliverable(newDeliveries, senderPid);
+		return toBeDelivered;
 	}
 	
 	private int getNextSeqNb() {

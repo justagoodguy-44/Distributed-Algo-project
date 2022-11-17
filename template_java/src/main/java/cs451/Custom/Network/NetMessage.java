@@ -1,11 +1,13 @@
-package cs451.Custom.Message;
+package cs451.Custom.Network;
 
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class NetMessage {
+import cs451.Custom.Message;
+
+public class NetMessage extends Message {
     
 	private boolean isAck;
     private int seqNb;
