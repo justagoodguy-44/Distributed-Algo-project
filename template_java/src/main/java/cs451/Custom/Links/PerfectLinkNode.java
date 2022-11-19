@@ -23,45 +23,63 @@ public class PerfectLinkNode {
 	
 	/*Messages that have been sent but for which confirmation hasn't been received go here
     It maps the message sequence number to the message*/
-    private Map<Integer, OutgoingPacket> unAckedPackets;
+    private List<Map<Integer, OutgoingPacket>> unAckedPackets;
     
 	private List<CompactedValueRecord> delivered;
 	
 	//the outer array represents the different hosts, and each has a list of messages that need to be sent to it
-	private List<WaitingMsgQueue> waitingForSend; 
+	private List<WaitingMsgQueue> waitingForSendOther; 
+	private List<WaitingMsgQueue> waitingForSendNew; 
 		
 	private static AtomicBoolean allowCommunication;
 			
-	private int maxUnackedPacketsPerProcess;
+	private int maxSmallestUnackedPacketsPerProcess;
 	
 	private int nextMsgSeqNb;
 	
 	private int nextDstPid;
+	
+	private static int MAX_SKIP_COUNT = 100;
+	
 
     
 	
     public PerfectLinkNode(InetAddress addr, int port, int processId) throws SocketException {
 		basicLinkNode = new BasicLinkNode(addr, port, processId);
-		unAckedPackets = new ConcurrentHashMap<Integer, OutgoingPacket>();
+		unAckedPackets = unackedPacketsInit();
 		delivered = deliveredInit();
-		waitingForSend = initWaitingForSend();
+		waitingForSendOther = initWaitingForSend(MAX_SKIP_COUNT, Integer.MAX_VALUE);
+		waitingForSendNew = initWaitingForSend(MAX_SKIP_COUNT, NetworkParams.WAITING_FOR_SEND_MAX_SIZE);
 		allowCommunication = new AtomicBoolean(true);
-		maxUnackedPacketsPerProcess = NetworkParams.getInstance().getMaxUnackedPacketsPerProcess();
+		maxSmallestUnackedPacketsPerProcess = NetworkParams.getInstance().getMaxSmallestUnackedPacketsPerProcess();
 		nextMsgSeqNb = 1;
 		nextDstPid = 1;
 		startRunningLoops();
 	}
-
     
-    public void send(InetAddress dstAddr, int dstPort, byte[] data) {
+    /**
+     * 
+     * @param dstAddr
+     * @param dstPort
+     * @param data
+     * @param isNewData specifies whether this message is new data sent from this host (true), or a message as part of a communication protocol (false)
+     */
+    public void send(InetAddress dstAddr, int dstPort, byte[] data, boolean isNewData) {
     	NetMessage message = new NetMessage(false, nextMsgSeqNb, data, dstAddr, dstPort);
     	try {
-			waitingForSend.get(ProcessIDHelpers.getIdFromPort(dstPort)-1).getWaitingMessages().put(message);	//will block until space is available
-		} catch (InterruptedException e) {
+    		if(isNewData) {
+    			//will block until space is available
+    			waitingForSendNew.get(ProcessIDHelpers.getIdFromPort(dstPort)-1).getWaitingMessages().put(message);	
+    		}
+    		else {
+    			waitingForSendOther.get(ProcessIDHelpers.getIdFromPort(dstPort)-1).getWaitingMessages().put(message);
+    		}
+    	} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
     	nextMsgSeqNb++;
     }
+    
     
 	public List<NetMessage> deliver() {
 		while(!allowCommunication.get()) {
@@ -108,20 +126,29 @@ public class PerfectLinkNode {
     		if(!allowCommunication.get()) {
 				return;
 			}
-    		WaitingMsgQueue waitingQueue = waitingForSend.get(nextDstPid-1);
+    		WaitingMsgQueue waitingQueue = waitingForSendOther.get(nextDstPid-1);
     		Queue<NetMessage> waitingMessages = waitingQueue.getWaitingMessages();
+    		boolean sendingNewData = false;
+    		if(waitingQueue.getWaitingMessages().isEmpty()) {
+    			waitingQueue = waitingForSendNew.get(nextDstPid-1);
+    			waitingMessages = waitingQueue.getWaitingMessages();
+    			sendingNewData = true;
+    		}
     		if(waitingMessages.size() < NetworkParams.MAX_NB_OF_MSG_PER_PACKET && waitingQueue.canSkip()) {
     			waitingQueue.skip();
     		}
-    		else if(!waitingMessages.isEmpty() && unAckedPackets.size() < maxUnackedPacketsPerProcess) {
-//    			System.out.println(waitingForSend.size());
-	    		OutgoingPacket packet = makeNextPacketToSend(NetworkParams.MAX_NB_OF_MSG_PER_PACKET);
-	    		waitingQueue.resetSkipCounter();
-//	    		System.out.println("Nb of msg in packet is " + packet.getMessages().size());
-	    		if(packet != null) {
-		    		basicLinkNode.send(packet);
-		    		unAckedPackets.put(packet.getPacketSeqNr(), packet);
-	    		}
+    		else if(!waitingMessages.isEmpty()) {
+    			if(!sendingNewData || smallestUnackedLineCount() < maxSmallestUnackedPacketsPerProcess) {
+	//    			System.out.println(waitingForSend.size());
+		    		OutgoingPacket packet = makeNextPacketToSend(waitingMessages, NetworkParams.MAX_NB_OF_MSG_PER_PACKET);
+		    		waitingQueue.resetSkipCounter();
+	//	    		System.out.println("Nb of msg in packet is " + packet.getMessages().size());
+		    		if(packet != null) {
+			    		basicLinkNode.send(packet);
+			    		int dstPid = ProcessIDHelpers.getIdFromPort(packet.getPort());
+			    		unAckedPackets.get(dstPid-1).put(packet.getPacketSeqNr(), packet);
+		    		}
+    			}
     		}
     		
     		nextDstPid = (nextDstPid+1)%(nbOfHosts+1);
@@ -133,18 +160,20 @@ public class PerfectLinkNode {
     
     public void runUnackedSendLoop() {
     	while(true) {
-    		for(OutgoingPacket packet : unAckedPackets.values()) {
-    			if(!allowCommunication.get()) {
-    				return;
-    			}
-//    	    	System.out.println("nb of unacked is " + unAckedPackets.values().size());
-
-    			long currentTimeMillis = System.currentTimeMillis();
-    			if(currentTimeMillis - packet.getTimeWhenSent() > NetworkParams.RESEND_TIMER_MILLIS) {
-    				packet.setTimeWhenSent(currentTimeMillis);	//will be overwritten in Send but it is necessary to update it immediatly to avoid sending it a bunch of times
-    				basicLinkNode.send(packet);
-//    				System.out.println("resend message " + packet.getMessage().getSequenceNumber());
-    			}
+    		for(Map<Integer, OutgoingPacket> unackedForHost : unAckedPackets) {
+	    		for(OutgoingPacket packet : unackedForHost.values()) {
+	    			if(!allowCommunication.get()) {
+	    				return;
+	    			}
+	//    	    	System.out.println("nb of unacked is " + unAckedPackets.values().size());
+	    			long currentTimeMillis = System.currentTimeMillis();
+	    			if(currentTimeMillis - packet.getTimeWhenSent() > getPacketMinimumResendWait(packet)) {
+	    				packet.setTimeWhenSent(currentTimeMillis);	//will be overwritten in Send but it is necessary to update it immediatly to avoid sending it a bunch of times
+	    				packet.incrementNbOfTimesSent();
+	    				basicLinkNode.send(packet);
+	//    				System.out.println("resend message " + packet.getMessage().getSequenceNumber());
+	    			}
+	    		}
     		}
     	}
     } 
@@ -159,8 +188,8 @@ public class PerfectLinkNode {
     	int srcPid = ProcessIDHelpers.getIdFromPort(port);
 	   
     	if(messages.size() == 1 && messages.get(0).isAck()) {
-//    		System.out.println("Received ack for message " + messages.get(0).getSequenceNumber()  + " from " + port);
-    		unAckedPackets.remove(packet.getPacketSeqNr());
+//    		System.out.println("Received ack for message " + messages.gintet(0).getSequenceNumber()  + " from " + port);
+    		unAckedPackets.get(srcPid-1).remove(packet.getPacketSeqNr());
     	} else {
     		sendAck(addr, port, seqNr);
     		if(!delivered.get(srcPid-1).contains(seqNr)) {
@@ -180,9 +209,8 @@ public class PerfectLinkNode {
    }
    
    
-   private OutgoingPacket makeNextPacketToSend(int maxNbOfMessages) {
+   private OutgoingPacket makeNextPacketToSend(Queue<NetMessage> waiting, int maxNbOfMessages) {
 	   List<NetMessage> messagesToSend = new LinkedList<>();
-	   Queue<NetMessage> waiting = waitingForSend.get(nextDstPid-1).getWaitingMessages();
 	   for(int i = 0; !waiting.isEmpty() && i < maxNbOfMessages; ++i) {
 		   messagesToSend.add(waiting.remove());
 	   }
@@ -190,11 +218,11 @@ public class PerfectLinkNode {
    }
    
    
-   private List<WaitingMsgQueue> initWaitingForSend() {
+   private List<WaitingMsgQueue> initWaitingForSend(int maxSkipCount, int maxBufferSize) {
 		int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
 		List<WaitingMsgQueue> tmp = new ArrayList<WaitingMsgQueue>();
 		for(int i = 0; i < nbOfHosts; ++i) {
-			WaitingMsgQueue queue = new WaitingMsgQueue(100);
+			WaitingMsgQueue queue = new WaitingMsgQueue(maxSkipCount, maxBufferSize);
 			tmp.add(queue);
 		}
 		return tmp;	
@@ -208,6 +236,32 @@ public class PerfectLinkNode {
 		}
 		return lines;
 	}
+   
+   private List<Map<Integer, OutgoingPacket>> unackedPacketsInit(){
+	   List<Map<Integer, OutgoingPacket>> tmp = new ArrayList<>();
+	   int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
+		for(int i = 0; i < nbOfHosts; ++i) {
+			tmp.add(new ConcurrentHashMap<>());
+		}
+		return tmp;
+   }
+   
+   /**
+    * @return the number of waiting packets in the smallest unacked queue
+    */
+   private int smallestUnackedLineCount() {
+	   int smallest = Integer.MAX_VALUE;
+	   for(Map map : unAckedPackets) {
+		   int nbUnacked = map.values().size();
+		   smallest = nbUnacked < smallest? nbUnacked : smallest;
+	   }
+	   return smallest;
+   }
+   
+   private float getPacketMinimumResendWait(OutgoingPacket packet) {
+	   int backoffMultiplier = Math.min(10, packet.getNbOfTimesSent()^2);
+	   return NetworkParams.FIRST_RESEND_TIMER_MILLIS * backoffMultiplier;
+   }
 
    
 

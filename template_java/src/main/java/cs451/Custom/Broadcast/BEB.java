@@ -16,9 +16,9 @@ public class BEB {
 		this.linkNode = linkNode;
 	}
 
-	public void broadcast(byte[] data) {
+	public void broadcast(byte[] data, boolean isNewData) {
 		for(Host host: hosts) { 
-			linkNode.send(host.getIpInetAddr(), host.getPort(), data);
+			linkNode.send(host.getIpInetAddr(), host.getPort(), data, isNewData);
 		}
 	}
 

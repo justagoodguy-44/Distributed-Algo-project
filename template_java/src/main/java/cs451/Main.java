@@ -117,7 +117,7 @@ public class Main {
 	        	for(int i = 0; i < messagesToSend; ++i) {
 		        	ByteBuffer data = ByteBuffer.allocate(Integer.BYTES); 
 	        		data.putInt(i+1); 
-	        		fifo.broadcast(data.array());
+	        		fifo.broadcast(data.array(), true);
             	}
         	}
         };

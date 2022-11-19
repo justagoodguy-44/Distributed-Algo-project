@@ -24,8 +24,8 @@ public class FIFO {
 		this.urb = new URB(hosts, pid, linkNode);
 	}
 	
-	public void broadcast(byte[] data) {
-		urb.broadcast(data);
+	public void broadcast(byte[] data, boolean isNewData) {
+		urb.broadcast(data, isNewData);
 	}
 	
 	public List<URBMessage> deliver() {

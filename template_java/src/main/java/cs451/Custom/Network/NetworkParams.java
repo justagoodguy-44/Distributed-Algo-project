@@ -8,9 +8,9 @@ public class NetworkParams {
 	
 	public static final int WAITING_FOR_SEND_MAX_SIZE = 64;
 	
-	public static final float RESEND_TIMER_MILLIS = 150;
+	public static final float FIRST_RESEND_TIMER_MILLIS = 3000;
 				
-	public static final int MAX_UNACKED_PACKETS = 15_000;
+	public static final int MAX_UNACKED_PACKETS = 300;
 	
 	public static final int MAX_PACKET_SIZE = 256;
 
@@ -34,7 +34,7 @@ public class NetworkParams {
 	}
 	
 	
-	public int getMaxUnackedPacketsPerProcess() {
+	public int getMaxSmallestUnackedPacketsPerProcess() {
 		return maxUnackedPacketsPerProcess;
 	}
 	

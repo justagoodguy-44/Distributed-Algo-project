@@ -11,6 +11,7 @@ import cs451.Custom.Network.NetMessage;
 public class OutgoingPacket extends Packet {
 
 	private long timeWhenSent = -1;
+	private int nbOfTimesSent = 1;
 	
 	public OutgoingPacket(List<NetMessage> messages) {
 		super(messages);
@@ -26,6 +27,14 @@ public class OutgoingPacket extends Packet {
 	
 	public void setTimeWhenSent(long timeWhenSent) {
 		this.timeWhenSent = timeWhenSent;
+	}
+	
+	public int getNbOfTimesSent() {
+		return nbOfTimesSent;
+	}
+	
+	public void incrementNbOfTimesSent() {
+		nbOfTimesSent++;
 	}
 
 	

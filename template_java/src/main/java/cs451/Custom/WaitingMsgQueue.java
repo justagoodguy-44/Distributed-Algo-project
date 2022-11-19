@@ -12,8 +12,8 @@ public class WaitingMsgQueue {
 	private int maxSkipCount;
 	private int currentSkipCount;
 	
-	public WaitingMsgQueue(int maxSkipCount) {
-		waitingMessages = new LinkedBlockingQueue<>(NetworkParams.WAITING_FOR_SEND_MAX_SIZE);
+	public WaitingMsgQueue(int maxSkipCount, int maxBufferSize) {
+		waitingMessages = new LinkedBlockingQueue<>(maxBufferSize);
 		this.maxSkipCount = maxSkipCount;
 	}
 	

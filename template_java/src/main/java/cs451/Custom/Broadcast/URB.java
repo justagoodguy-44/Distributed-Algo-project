@@ -39,11 +39,11 @@ public class URB {
 	}
 
 	
-	public void broadcast(byte[] data) {
+	public void broadcast(byte[] data, boolean isNewData) {
 		int seqNb = getNextSeqNb();
 		URBMessage urbMessage = new URBMessage(pid, seqNb, data);
 		byte[] serializedMsg = URBMessageSerializer.serializeForNet(urbMessage);
-		beb.broadcast(serializedMsg);
+		beb.broadcast(serializedMsg, isNewData);
 		logger.logSend(seqNb);
 	}
 
@@ -69,7 +69,7 @@ public class URB {
 						acksForThisMsg.addAck(pid-1);
 						ackRecords.put(id, acksForThisMsg);
 						if(srcPid != pid) {
-							beb.broadcast(serializedMsg);
+							beb.broadcast(serializedMsg, false);
 						}
 					}
 					else {
