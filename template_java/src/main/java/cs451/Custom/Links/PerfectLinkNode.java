@@ -28,30 +28,27 @@ public class PerfectLinkNode {
 	private List<CompactedValueRecord> delivered;
 	
 	//the outer array represents the different hosts, and each has a list of messages that need to be sent to it
-	private List<WaitingMsgQueue> waitingForSendOther; 
-	private List<WaitingMsgQueue> waitingForSendNew; 
+	private List<WaitingMsgQueue> waitingForSend; 
 		
 	private static AtomicBoolean allowCommunication;
+	
+	private NetworkParams networkParams = NetworkParams.getInstance();
 			
 	private int maxSmallestUnackedPacketsPerProcess;
 	
 	private int nextMsgSeqNb;
 	
-	private int nextDstPid;
-	
-	private static int MAX_SKIP_COUNT = 100;
-	
+	private int nextDstPid;	
 
     
 	
     public PerfectLinkNode(InetAddress addr, int port, int processId) throws SocketException {
 		basicLinkNode = new BasicLinkNode(addr, port, processId);
-		unAckedPackets = unackedPacketsInit();
-		delivered = deliveredInit();
-		waitingForSendOther = initWaitingForSend(MAX_SKIP_COUNT, Integer.MAX_VALUE);
-		waitingForSendNew = initWaitingForSend(MAX_SKIP_COUNT, NetworkParams.WAITING_FOR_SEND_MAX_SIZE);
+		unAckedPackets = initUnackedPackets();
+		delivered = initDelivered();
+		waitingForSend = initWaitingForSend(NetworkParams.MAX_SKIP_COUNT, Integer.MAX_VALUE);
 		allowCommunication = new AtomicBoolean(true);
-		maxSmallestUnackedPacketsPerProcess = NetworkParams.getInstance().getMaxSmallestUnackedPacketsPerProcess();
+		maxSmallestUnackedPacketsPerProcess = networkParams.getMaxSmallestUnackedPacketsPerProcess();
 		nextMsgSeqNb = 1;
 		nextDstPid = 1;
 		startRunningLoops();
@@ -64,16 +61,10 @@ public class PerfectLinkNode {
      * @param data
      * @param isNewData specifies whether this message is new data sent from this host (true), or a message as part of a communication protocol (false)
      */
-    public void send(InetAddress dstAddr, int dstPort, byte[] data, boolean isNewData) {
+    public void send(InetAddress dstAddr, int dstPort, byte[] data) {
     	NetMessage message = new NetMessage(false, nextMsgSeqNb, data, dstAddr, dstPort);
     	try {
-    		if(isNewData) {
-    			//will block until space is available
-    			waitingForSendNew.get(ProcessIDHelpers.getIdFromPort(dstPort)-1).getWaitingMessages().put(message);	
-    		}
-    		else {
-    			waitingForSendOther.get(ProcessIDHelpers.getIdFromPort(dstPort)-1).getWaitingMessages().put(message);
-    		}
+    		waitingForSend.get(ProcessIDHelpers.getIdFromPort(dstPort)-1).getWaitingMessages().put(message);
     	} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -121,24 +112,19 @@ public class PerfectLinkNode {
     }
     
     public void runSendLoop() {
-    	int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
+    	int nbOfHosts = networkParams.getNbOfHosts();
     	while(true) {
     		if(!allowCommunication.get()) {
 				return;
 			}
-    		WaitingMsgQueue waitingQueue = waitingForSendOther.get(nextDstPid-1);
+    		WaitingMsgQueue waitingQueue = waitingForSend.get(nextDstPid-1);
     		Queue<NetMessage> waitingMessages = waitingQueue.getWaitingMessages();
-    		boolean sendingNewData = false;
-    		if(waitingQueue.getWaitingMessages().isEmpty()) {
-    			waitingQueue = waitingForSendNew.get(nextDstPid-1);
-    			waitingMessages = waitingQueue.getWaitingMessages();
-    			sendingNewData = true;
-    		}
+    		
     		if(waitingMessages.size() < NetworkParams.MAX_NB_OF_MSG_PER_PACKET && waitingQueue.canSkip()) {
     			waitingQueue.skip();
     		}
     		else if(!waitingMessages.isEmpty()) {
-    			if(!sendingNewData || smallestUnackedLineCount() < maxSmallestUnackedPacketsPerProcess) {
+    			if(maybeWorstCorrectUnackedLineCount() < maxSmallestUnackedPacketsPerProcess) {
 	//    			System.out.println(waitingForSend.size());
 		    		OutgoingPacket packet = makeNextPacketToSend(waitingMessages, NetworkParams.MAX_NB_OF_MSG_PER_PACKET);
 		    		waitingQueue.resetSkipCounter();
@@ -219,7 +205,7 @@ public class PerfectLinkNode {
    
    
    private List<WaitingMsgQueue> initWaitingForSend(int maxSkipCount, int maxBufferSize) {
-		int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
+		int nbOfHosts = networkParams.getNbOfHosts();
 		List<WaitingMsgQueue> tmp = new ArrayList<WaitingMsgQueue>();
 		for(int i = 0; i < nbOfHosts; ++i) {
 			WaitingMsgQueue queue = new WaitingMsgQueue(maxSkipCount, maxBufferSize);
@@ -228,18 +214,18 @@ public class PerfectLinkNode {
 		return tmp;	
    }
    
-   private List<CompactedValueRecord> deliveredInit(){
+   private List<CompactedValueRecord> initDelivered(){
 		List<CompactedValueRecord> lines = new ArrayList<>();
-		int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
+		int nbOfHosts = networkParams.getNbOfHosts();
 		for(int i = 0; i < nbOfHosts; ++i) {
 			lines.add(new CompactedValueRecord());
 		}
 		return lines;
 	}
    
-   private List<Map<Integer, OutgoingPacket>> unackedPacketsInit(){
+   private List<Map<Integer, OutgoingPacket>> initUnackedPackets(){
 	   List<Map<Integer, OutgoingPacket>> tmp = new ArrayList<>();
-	   int nbOfHosts = NetworkParams.getInstance().getNbOfHosts();
+	   int nbOfHosts = networkParams.getNbOfHosts();
 		for(int i = 0; i < nbOfHosts; ++i) {
 			tmp.add(new ConcurrentHashMap<>());
 		}
@@ -247,15 +233,16 @@ public class PerfectLinkNode {
    }
    
    /**
-    * @return the number of waiting packets in the smallest unacked queue
+    * @return the number of waiting packets in the nbHosts/2 + 1 biggest line
     */
-   private int smallestUnackedLineCount() {
-	   int smallest = Integer.MAX_VALUE;
+   private int maybeWorstCorrectUnackedLineCount() {
+	   ArrayList<Integer> allLineCounts = new ArrayList<>();
 	   for(Map map : unAckedPackets) {
-		   int nbUnacked = map.values().size();
-		   smallest = nbUnacked < smallest? nbUnacked : smallest;
+		   allLineCounts.add(map.values().size());		   
 	   }
-	   return smallest;
+	   allLineCounts.sort(null);
+	   int maybeWorstCorrectProcessPos = networkParams.getNbOfHosts()/2;
+	   return allLineCounts.get(maybeWorstCorrectProcessPos);
    }
    
    private float getPacketMinimumResendWait(OutgoingPacket packet) {

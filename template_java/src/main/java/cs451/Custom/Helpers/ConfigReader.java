@@ -12,7 +12,6 @@ public class ConfigReader {
 	
 	public ConfigReader(String path) {
 		configFile = new File(path);
-		extractValues();
 	}
 	
 	public long getNbMessages() {
@@ -23,7 +22,7 @@ public class ConfigReader {
 		return dstPid;
 	}
 	
-	private void extractValues()  {
+	public void extractValuesPerfectLinks()  {
 		Scanner scanner;
 		try {
 			scanner = new Scanner(configFile);
@@ -33,7 +32,17 @@ public class ConfigReader {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-		
+	}
+	
+	public void extractValuesFIFO() {
+		Scanner scanner;
+		try {
+			scanner = new Scanner(configFile);
+			nbMessages = scanner.nextLong();
+			scanner.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 	 
 	

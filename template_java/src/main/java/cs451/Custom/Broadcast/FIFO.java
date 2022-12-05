@@ -1,11 +1,8 @@
 package cs451.Custom.Broadcast;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-
 import cs451.Host;
 import cs451.Custom.CommunicationLogger;
 import cs451.Custom.Links.PerfectLinkNode;
@@ -25,7 +22,7 @@ public class FIFO {
 	}
 	
 	public void broadcast(byte[] data, boolean isNewData) {
-		urb.broadcast(data, isNewData);
+		urb.broadcast(data);
 	}
 	
 	public List<URBMessage> deliver() {

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 
@@ -48,6 +49,14 @@ public class CommunicationLogger {
 	public void logDeliver(int srcPid, int seqNr) {
 		String log = String.format("d %d %d \n", srcPid , seqNr);
 		toBeWrittenToFile.add(log);
+	}
+	
+	public void logAgree(Set<Integer> vals) {
+		String valsString = "";
+		for(Integer val : vals) {
+			valsString = valsString + val + " ";
+		}
+		toBeWrittenToFile.add(valsString);
 	}
 	
 	//Writes to file and closes the file writer

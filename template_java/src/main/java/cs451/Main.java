@@ -1,6 +1,5 @@
 package cs451;
 
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -8,13 +7,9 @@ import java.nio.ByteBuffer;
 
 import cs451.Custom.CommunicationLogger;
 import cs451.Custom.Broadcast.FIFO;
-import cs451.Custom.Broadcast.URB;
 import cs451.Custom.Helpers.ConfigReader;
-import cs451.Custom.Helpers.ProcessIDHelpers;
 import cs451.Custom.Links.PerfectLinkNode;
-import cs451.Custom.Network.NetMessage;
 import cs451.Custom.Network.NetworkParams;
-import cs451.Custom.Packet.IncomingPacket;
 
 public class Main {
 	
@@ -85,9 +80,10 @@ public class Main {
         System.out.println("Broadcasting and delivering messages...\n");
         
         ConfigReader configReader = new ConfigReader(parser.config());
+        configReader.extractValuesFIFO();
         System.out.println("Config to send:");
         System.out.println("===============");
-        System.out.println(configReader.getNbMessages() + " messages to " + configReader.getDestPid() + "\n");
+        System.out.println(configReader.getNbMessages() + " messages \n");
 
         PerfectLinkNode linkNode = new PerfectLinkNode(myIp, myPort, parser.myId());
         FIFO fifo = new FIFO(parser.hosts(), pid, linkNode);
@@ -105,9 +101,6 @@ public class Main {
         
         //Enqueue messages to be sent
         long messagesToSend = configReader.getNbMessages();
-        int dstPid = configReader.getDestPid();
-        InetAddress dstAddr = InetAddress.getByName(parser.hosts().get(dstPid-1).getIp());
-        int dstPort = ProcessIDHelpers.getPortFromId(dstPid);
        
         
         
