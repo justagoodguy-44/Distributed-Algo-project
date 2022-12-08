@@ -16,4 +16,5 @@ public class LatticeProposal extends LatticeMsg {
 	}
 	
 	
+	
 }

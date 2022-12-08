@@ -34,8 +34,15 @@ public class LatticeSerializer {
 		return serializedMsg.array();
 	}
 	
+	public static byte[] serializeResponseForNet(LatticeResponse response) {
+		if(response.isAck()) {
+			return serializeAckForNet(response.getInstanceId(), response.getProposalNb());
+		} else {
+			return serializeNackForNet(response.getInstanceId(), response.getProposalNb(), response.getMissingVals());
+		}
+	}
 	
-	public static byte[] serializeAckForNet(int instanceId, int proposalNb) {
+	private static byte[] serializeAckForNet(int instanceId, int proposalNb) {
 		int bytesNeeded = RESPONSE_SET_SERIALIZED_POS;
 		ByteBuffer serializedMsg = ByteBuffer.allocate(bytesNeeded);
 		byte msgType = 1;	//1 for response, would be 0 for proposal
@@ -48,7 +55,7 @@ public class LatticeSerializer {
 	}
 	
 	
-	public static byte[] serializeNackForNet(int instanceId, int proposalNb, Set<Integer> missingVals) {
+	private static byte[] serializeNackForNet(int instanceId, int proposalNb, Set<Integer> missingVals) {
 		int bytesNeeded = RESPONSE_SET_SERIALIZED_POS + missingVals.size()*Integer.BYTES;
 		ByteBuffer serializedMsg = ByteBuffer.allocate(bytesNeeded);
 		byte msgType = 1;	//1 for response, would be 0 for proposal

@@ -2,6 +2,8 @@ package cs451.Custom.Lattice;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import cs451.Host;
 import cs451.Custom.CommunicationLogger;
 import cs451.Custom.Broadcast.BEB;
@@ -12,7 +14,6 @@ public class LatticeAgreeInstance {
 	
 	private boolean active = false;
 	private ActiveProposalHandler proposalHandler = new ActiveProposalHandler();
-	private CommunicationLogger logger = CommunicationLogger.getInstance();
 	private int nbOfCorrectHosts;
 	private int instanceId;
 	private BEB beb;
@@ -34,18 +35,27 @@ public class LatticeAgreeInstance {
 		byte[] serializedProposal = LatticeSerializer.serializeProposalForNet(instanceId, proposalNb, proposal);
 		beb.broadcast(serializedProposal);
 	}
-
 	
-	private void handleProposal(LatticeProposal proposal) {
-		//CASE PAST PROPOSAL
-		//CASE CURRENT PROPOSAL
-		//CASE FUTURE PROPOSAL
+	/*
+	 * Generates a response and adds values from the incoming proposal into the current proposal
+	 */
+	public static LatticeResponse generateResponseFromProposal(Set<Integer> myCurrentProposalVals, LatticeProposal incomingProposal) {
+		Set<Integer> proposedVals = incomingProposal.getProposedVals();
+		Set<Integer> myLatestProposalCopy = new HashSet<Integer>(myCurrentProposalVals);
+		myLatestProposalCopy.removeAll(proposedVals);
+		boolean isAck = myLatestProposalCopy.isEmpty();
+		return new LatticeResponse(incomingProposal.getInstanceId(), incomingProposal.getProposalNb(), isAck, myLatestProposalCopy);
+	}
+	
+	
+	public LatticeResponse handleProposal(LatticeProposal incomingProposal) {
+		return LatticeAgreeInstance.generateResponseFromProposal(proposalHandler.getLatestProposal(), incomingProposal);
 	}
 	
 	/**
 	 * @return whether the proposal was delivered after receiving this response
 	 */
-	private boolean handleResponse(LatticeResponse response) {
+	public boolean handleResponse(LatticeResponse response) {
 		int proposalNb = response.getProposalNb();
 		if(!proposalHandler.isActiveProposalNb(proposalNb)) {
 			return false;
@@ -57,7 +67,6 @@ public class LatticeAgreeInstance {
 				//DELIVERRRRRRRR
 				active = false;
 				delivered = true;
-				logger.logAgree(proposalHandler.getProposal(response.getProposalNb()));
 			}
 		} else {
 			HashSet<Integer> newProposals = proposalHandler.getProposal(proposalNb);
@@ -67,6 +76,15 @@ public class LatticeAgreeInstance {
 		}
 		return delivered;
 	}
+	
+	
+	public HashSet<Integer> getProposal(int proposalNb){
+		return proposalHandler.getProposal(proposalNb);
+	}
+
+	
+	
+	
 
 
 	

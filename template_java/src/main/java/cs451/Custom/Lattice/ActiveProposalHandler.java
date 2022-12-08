@@ -3,6 +3,7 @@ package cs451.Custom.Lattice;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ActiveProposalHandler {
 
@@ -98,6 +99,11 @@ public class ActiveProposalHandler {
 		}
 		return activeProposedVals.get(proposalIdx);
 	}
+	
+	public HashSet<Integer> getLatestProposal(){
+		return activeProposedVals.get(activeProposedVals.size()-1);
+	}
+	
 
 
 }
