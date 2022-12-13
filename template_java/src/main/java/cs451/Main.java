@@ -6,8 +6,12 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
 import cs451.Custom.CommunicationLogger;
+import cs451.Custom.Broadcast.BEB;
 import cs451.Custom.Broadcast.FIFO;
 import cs451.Custom.Helpers.ConfigReader;
+import cs451.Custom.Helpers.ConfigReaderLattice;
+import cs451.Custom.Lattice.LatticeAgreeOrganizer;
+import cs451.Custom.Lattice.LatticeReader;
 import cs451.Custom.Links.PerfectLinkNode;
 import cs451.Custom.Network.NetworkParams;
 
@@ -39,7 +43,10 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, SocketException, UnknownHostException {
     	Parser parser = new Parser(args);
         parser.parse();
-        NetworkParams.setInstance(parser.hosts().size());
+        ConfigReaderLattice configReader = new ConfigReaderLattice(parser.config());
+        configReader.extractValuesLattice();
+        int maxRcvBufferSize = configReader.getMaxTotalDifferentVals() * Integer.BYTES * 8;
+        NetworkParams.setInstance(parser.hosts().size(), maxRcvBufferSize);
         CommunicationLogger.setInstance(parser.output());
         initSignalHandlers();
 
@@ -78,43 +85,32 @@ public class Main {
         System.out.println(parser.config() + "\n");
 
         System.out.println("Broadcasting and delivering messages...\n");
-        
-        ConfigReader configReader = new ConfigReader(parser.config());
-        configReader.extractValuesFIFO();
-        System.out.println("Config to send:");
-        System.out.println("===============");
-        System.out.println(configReader.getNbMessages() + " messages \n");
+
 
         PerfectLinkNode linkNode = new PerfectLinkNode(myIp, myPort, parser.myId());
-        FIFO fifo = new FIFO(parser.hosts(), pid, linkNode);
+        BEB beb = new BEB(parser.hosts(), linkNode);
+        
+        
+        LatticeReader latticeReader = new LatticeReader(parser.config());
+        int nbOfSimultaneousOneShots = 10;
+        LatticeAgreeOrganizer latticeAgree = new LatticeAgreeOrganizer(nbOfSimultaneousOneShots, latticeReader, beb, linkNode);
         
         
         Thread deliverThread = new Thread() {
          	@Override
              public void run() {
          		while(true) {
-            		fifo.deliver();
+            		latticeAgree.deliver();
             	}
              }
          };
          deliverThread.start();
         
         //Enqueue messages to be sent
-        long messagesToSend = configReader.getNbMessages();
        
         
         
-        Thread addNewMessagesThread = new Thread() {
-        	@Override
-            public void run() {
-	        	for(int i = 0; i < messagesToSend; ++i) {
-		        	ByteBuffer data = ByteBuffer.allocate(Integer.BYTES); 
-	        		data.putInt(i+1); 
-	        		fifo.broadcast(data.array(), true);
-            	}
-        	}
-        };
-        addNewMessagesThread.start();
+        
     
 
         // After a process finishes broadcasting,

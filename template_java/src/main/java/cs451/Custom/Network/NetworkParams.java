@@ -12,33 +12,34 @@ public class NetworkParams {
 
 	public static final int MAX_UNACKED_PACKETS = 256;
 
-	public static final int MAX_PACKET_SIZE = 256;
-
 	public static final float SEND_NEW_PACKET_ANYWAYS_PROBA = 0.001f;
 	
 	public static int MAX_SKIP_COUNT = 100;
-
-
+	
 
 	private int nbOfHosts;
 
 	private int maxUnackedPacketsPerProcess;
 	
 	private int nbOfCorrectHosts;
+	
+	private int maxRcvBufferSize;
 
 
-	public static void setInstance(int nbOfHosts) {
-		networkParams = new NetworkParams(nbOfHosts);
+
+	public static void setInstance(int nbOfHosts, int maxRcvBufferSize) {
+		networkParams = new NetworkParams(nbOfHosts, maxRcvBufferSize);
 	}
 
 	public static NetworkParams getInstance() {
 		return networkParams;
 	}
 
-	private NetworkParams(int nbOfHosts) {
+	private NetworkParams(int nbOfHosts, int maxRcvBufferSize) {
 		this.nbOfHosts = nbOfHosts;
 		this.maxUnackedPacketsPerProcess = MAX_UNACKED_PACKETS / nbOfHosts;
 		this.nbOfCorrectHosts = nbOfHosts/2 + 1;
+		this.maxRcvBufferSize = maxRcvBufferSize;
 	}
 
 
@@ -52,5 +53,9 @@ public class NetworkParams {
 	
 	public int getNbOfCorrectHosts() {
 		return nbOfCorrectHosts;
+	}
+	
+	public int getMaxDifferentProposalVals() {
+		return maxRcvBufferSize;
 	}
 }

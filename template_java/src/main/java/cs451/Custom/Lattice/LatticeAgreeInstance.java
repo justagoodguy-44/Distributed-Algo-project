@@ -1,24 +1,17 @@
 package cs451.Custom.Lattice;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
-import cs451.Host;
-import cs451.Custom.CommunicationLogger;
 import cs451.Custom.Broadcast.BEB;
-import cs451.Custom.Links.PerfectLinkNode;
-import cs451.Custom.Network.NetworkParams;
 
 public class LatticeAgreeInstance {
 	
-	private boolean active = false;
 	private ActiveProposalHandler proposalHandler = new ActiveProposalHandler();
 	private int nbOfCorrectHosts;
 	private int instanceId;
 	private BEB beb;
 		
-	public LatticeAgreeInstance(int instanceId, BEB beb, int nbOfCorrectHosts) {
+	public LatticeAgreeInstance(BEB beb, int nbOfCorrectHosts) {
 		this.beb = beb;
 		this.nbOfCorrectHosts = nbOfCorrectHosts;
 	}
@@ -31,7 +24,6 @@ public class LatticeAgreeInstance {
 	
 	private void propose(HashSet<Integer> proposal) {
 		int proposalNb = proposalHandler.addProposal(proposal);
-		active = true;
 		byte[] serializedProposal = LatticeSerializer.serializeProposalForNet(instanceId, proposalNb, proposal);
 		beb.broadcast(serializedProposal);
 	}
@@ -60,26 +52,28 @@ public class LatticeAgreeInstance {
 		if(!proposalHandler.isActiveProposalNb(proposalNb)) {
 			return false;
 		}
-		boolean delivered = false;
+		boolean canDeliver = false;
 		if(response.isAck()) {
 			int nbOfAcks = proposalHandler.addAck(proposalNb);
-			if(nbOfAcks >= nbOfCorrectHosts && active) {
-				//DELIVERRRRRRRR
-				active = false;
-				delivered = true;
+			if(nbOfAcks >= nbOfCorrectHosts) {
+				canDeliver = true;
 			}
 		} else {
-			HashSet<Integer> newProposals = proposalHandler.getProposal(proposalNb);
-			newProposals.addAll(response.getMissingVals());
+			HashSet<Integer> newProposal = proposalHandler.getProposal(proposalNb);
+			newProposal.addAll(response.getMissingVals());
 			proposalHandler.addNack(proposalNb);
-			propose(newProposals);
+			propose(newProposal);
 		}
-		return delivered;
+		return canDeliver;
 	}
 	
 	
 	public HashSet<Integer> getProposal(int proposalNb){
 		return proposalHandler.getProposal(proposalNb);
+	}
+	
+	public HashSet<Integer> getLatestProposal(){
+		return proposalHandler.getLatestProposal();
 	}
 
 	

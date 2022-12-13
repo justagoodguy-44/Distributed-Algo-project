@@ -6,37 +6,43 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
 
 public class LatticeReader {
 	
 	private File latticeFile;
+	private Scanner latticeFileScanner;
 	
 	public LatticeReader(String path) {
 		latticeFile = new File(path);
+		try {
+			latticeFileScanner = new Scanner(latticeFile);
+			//Skip first line
+			latticeFileScanner.nextLine();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
 	}
 	
 	public List<HashSet<Integer>> read(int nbOfLines) {
-		Scanner scanner;
-		try {
-			scanner = new Scanner(latticeFile);
-			int nbRead = 0;
-			List<HashSet<Integer>> linesContents = new LinkedList<>();
-			while(nbRead < nbOfLines && scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				String[] strVals = line.split(" ");
-				HashSet<Integer> intVals = new HashSet<>();
-				for(int i = 0; i < strVals.length; ++i) {
-					intVals.add(Integer.parseInt(strVals[i]));
-				}
+		int nbRead = 0;
+		List<HashSet<Integer>> linesContents = new LinkedList<>();
+		while(nbRead < nbOfLines && latticeFileScanner.hasNextLine()) {
+			String line = latticeFileScanner.nextLine();
+			String[] strVals = line.split(" ");
+			HashSet<Integer> intVals = new HashSet<>();
+			for(int i = 0; i < strVals.length; ++i) {
+				intVals.add(Integer.parseInt(strVals[i]));
 			}
-			scanner.close();
-			return linesContents;
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			return null;
+			linesContents.add(intVals);
 		}
+		return linesContents;
 	}
+	
+	public void close() {
+		latticeFileScanner.close();
+	}
+
 	
 	
 

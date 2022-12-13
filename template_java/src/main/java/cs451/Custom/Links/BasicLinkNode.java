@@ -14,9 +14,8 @@ import cs451.Custom.Packet.PacketSerializer;
 public class BasicLinkNode {
 	
 	private DatagramSocket datagramSocket;
-	
-	
-	protected int processId;
+	private int processId;
+	private int maxRcvBufferSize = NetworkParams.getInstance().getMaxDifferentProposalVals() * NetworkParams.MAX_NB_OF_MSG_PER_PACKET * Integer.BYTES + 100 ;
 	
 	
 		
@@ -41,8 +40,8 @@ public class BasicLinkNode {
 	
 	
 	protected IncomingPacket receive() {
-		byte[] nextMessageBuffer = new byte[NetworkParams.MAX_PACKET_SIZE];
-		DatagramPacket nextPacket = new DatagramPacket(nextMessageBuffer, NetworkParams.MAX_PACKET_SIZE);
+		byte[] nextMessageBuffer = new byte[maxRcvBufferSize];
+		DatagramPacket nextPacket = new DatagramPacket(nextMessageBuffer, maxRcvBufferSize);
 		try {
 			datagramSocket.receive(nextPacket);
 		} catch (IOException e) {

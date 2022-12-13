@@ -51,9 +51,7 @@ public class ActiveProposalHandler {
 	
 	public int addAck(int proposalNb) {
 		int proposalIdx = activeProposalNb.indexOf(proposalNb);
-		if(proposalIdx < 0) {
-			return -1;
-		}
+		assert(proposalIdx >= 0);
 		int updatedAcks = ackCount.get(proposalIdx) + 1;
 		ackCount.set(proposalIdx, updatedAcks);
 		return updatedAcks;
@@ -61,9 +59,7 @@ public class ActiveProposalHandler {
 	
 	public int addNack(int proposalNb) {
 		int proposalIdx = activeProposalNb.indexOf(proposalNb);
-		if(proposalIdx < 0) {
-			return -1;
-		}
+		assert(proposalIdx >= 0);
 		int updatedNacks = nackCount.get(proposalIdx) + 1;
 		nackCount.set(proposalIdx, updatedNacks);
 		return updatedNacks;
@@ -74,21 +70,18 @@ public class ActiveProposalHandler {
 		activeProposedVals.clear();
 		ackCount.clear();
 		nackCount.clear();
+		nextProposalNb = 1;
 	}
 	
 	public int getAckCount(int proposalNb) {
 		int proposalIdx = activeProposalNb.indexOf(proposalNb);
-		if(proposalIdx < 0) {
-			return -1;
-		}
+		assert(proposalIdx >= 0);
 		return ackCount.get(proposalIdx);
 	}
 	
 	public int getNackCount(int proposalNb) {
 		int proposalIdx = activeProposalNb.indexOf(proposalNb);
-		if(proposalIdx < 0) {
-			return -1;
-		}
+		assert(proposalIdx >= 0);
 		return nackCount.get(proposalIdx);
 	}
 	

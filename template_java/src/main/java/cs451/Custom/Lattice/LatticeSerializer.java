@@ -62,7 +62,7 @@ public class LatticeSerializer {
 		serializedMsg.put(msgType);
 		serializedMsg.putInt(instanceId);
 		serializedMsg.putInt(proposalNb);
-		byte isAck = 1;	//0 since is an nack, would be 1 for nack
+		byte isAck = 0;	//0 since is an nack, would be 1 for nack
 		serializedMsg.put(isAck);
 		for(int val : missingVals) {
 			serializedMsg.putInt(val);
@@ -79,7 +79,7 @@ public class LatticeSerializer {
 		
 		if(msgType == LatticeMsgType.PROPOSAL) {
 			Set<Integer> proposedVals = new HashSet<Integer>();
-			for(int i = PROPOSAL_SET_SERIALIZED_POS; i < serializedMsg.length; ++i) {
+			for(int i = PROPOSAL_SET_SERIALIZED_POS; i < serializedMsg.length; i = i + Integer.BYTES) {
 				proposedVals.add(msgBuffer.getInt());
 			}
 			return new LatticeProposal(instanceId, proposalNb, proposedVals);
@@ -91,7 +91,7 @@ public class LatticeSerializer {
 			Set<Integer> missingVals = null;
 			if(!isAck) {
 				missingVals = new HashSet<Integer>();
-				for(int i = RESPONSE_SET_SERIALIZED_POS; i < serializedMsg.length; ++i) {
+				for(int i = RESPONSE_SET_SERIALIZED_POS; i < serializedMsg.length; i = i + Integer.BYTES) {
 					missingVals.add(msgBuffer.getInt());
 				}
 			}

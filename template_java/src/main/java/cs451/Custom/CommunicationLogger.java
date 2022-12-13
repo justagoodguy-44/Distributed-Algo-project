@@ -3,8 +3,10 @@ package cs451.Custom;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -21,6 +23,7 @@ public class CommunicationLogger {
 	private File logFile;
 	private static FileWriter fileWriter;
 	private static Queue<String> toBeWrittenToFile;
+	private static Map<Integer, String> toBeWrittenToFileOrdered;
 	
 	
 	public static void setInstance(String pathToOutput) {
@@ -34,6 +37,7 @@ public class CommunicationLogger {
 	private CommunicationLogger(String pathToOutput) {
 		this.pathToOutput = pathToOutput;
 		this.toBeWrittenToFile = new ConcurrentLinkedQueue<>();
+		this.toBeWrittenToFileOrdered = new HashMap<Integer, String>();
 		InitLogFile();
 	}
 	
@@ -51,12 +55,13 @@ public class CommunicationLogger {
 		toBeWrittenToFile.add(log);
 	}
 	
-	public void logAgree(Set<Integer> vals) {
+	public void logAgree(int agreeId, Set<Integer> vals) {
 		String valsString = "";
 		for(Integer val : vals) {
 			valsString = valsString + val + " ";
 		}
-		toBeWrittenToFile.add(valsString);
+		valsString += "\n";
+		toBeWrittenToFileOrdered.put(agreeId, valsString);
 	}
 	
 	//Writes to file and closes the file writer
@@ -67,6 +72,22 @@ public class CommunicationLogger {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		boolean checkNext = true;
+		int nextValInMap = 1;
+		while(checkNext) {
+			String nextString = toBeWrittenToFileOrdered.get(nextValInMap);
+			if(nextString != null) {
+				try {
+					fileWriter.write(nextString);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				nextValInMap++;
+			} else {
+				checkNext = false;
+			}
+			
 		}
 		try {
 			fileWriter.close();
