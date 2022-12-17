@@ -61,7 +61,10 @@ public class LatticeAgreeInstance {
 		} else {
 			HashSet<Integer> newProposal = proposalHandler.getProposal(proposalNb);
 			newProposal.addAll(response.getMissingVals());
-			proposalHandler.addNack(proposalNb);
+			int nackCount = proposalHandler.addNack(proposalNb);
+			if(nackCount >= nbOfCorrectHosts) {
+				proposalHandler.removeProposal(proposalNb);
+			}
 			propose(newProposal);
 		}
 		return canDeliver;

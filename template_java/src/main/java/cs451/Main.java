@@ -92,7 +92,7 @@ public class Main {
         
         
         LatticeReader latticeReader = new LatticeReader(parser.config());
-        int nbOfSimultaneousOneShots = 10;
+        int nbOfSimultaneousOneShots = Math.max(1, 1000/parser.hosts().size());
         LatticeAgreeOrganizer latticeAgree = new LatticeAgreeOrganizer(nbOfSimultaneousOneShots, latticeReader, beb, linkNode);
         
         
